@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, MapPin, Users, Lock, Globe } from "lucide-react";
+import { ArrowLeft, Clock, Users, Lock, Globe } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { sports, visibilityOptions, getSportById } from "../config/sports";
+import LocationInput from "../components/LocationInput";
 
 // Map visibility icons
 const visibilityIcons = {
@@ -23,6 +24,7 @@ export default function CreateActivity() {
   const [duration, setDuration] = useState(60); // Duration in minutes
   const [distance, setDistance] = useState("");
   const [location, setLocation] = useState("");
+  const [locationCoords, setLocationCoords] = useState(null); // { lat, lng }
   const [locationDetails, setLocationDetails] = useState("");
   const [visibility, setVisibility] = useState("public");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,6 +67,8 @@ export default function CreateActivity() {
             ? parseInt(distance, 10)
             : null,
         location,
+        location_lat: locationCoords?.lat || null,
+        location_lng: locationCoords?.lng || null,
         location_details: locationDetails || null,
         visibility,
       });
@@ -233,22 +237,22 @@ export default function CreateActivity() {
         {/* Location */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            <MapPin size={16} className="inline mr-1" />
             Starting Location
           </label>
-          <input
-            type="text"
-            placeholder="e.g., Central Park Tennis Courts"
+          <LocationInput
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent mb-3"
+            onChange={(address, coords) => {
+              setLocation(address);
+              setLocationCoords(coords);
+            }}
+            placeholder="Search for a location..."
           />
           <input
             type="text"
             placeholder="Additional details (court number, meeting point...)"
             value={locationDetails}
             onChange={(e) => setLocationDetails(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+            className="w-full mt-3 px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
           />
         </div>
 
