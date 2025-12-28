@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, MapPin, Clock, Users } from "lucide-react";
+import { Search, Plus, MapPin, Clock, Users, Lock, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
@@ -38,7 +38,7 @@ export default function Feed() {
         .select(
           `
           *,
-          organizer:profiles!organizer_id(id, full_name, avatar_url)
+          organizer:profiles!creator_id(id, full_name, avatar_url)
         `
         )
         .gte("date_time", new Date().toISOString())
@@ -132,6 +132,29 @@ export default function Feed() {
     return icons[sport] || "🏃";
   };
 
+  const getVisibilityBadge = (visibility) => {
+    switch (visibility) {
+      case "invite_only":
+        return {
+          label: "Invite Only",
+          icon: Lock,
+          color: "bg-amber-100 text-amber-700",
+        };
+      case "mates":
+        return {
+          label: "Mates",
+          icon: Users,
+          color: "bg-blue-100 text-blue-700",
+        };
+      default:
+        return {
+          label: "Public",
+          icon: Globe,
+          color: "bg-green-100 text-green-700",
+        };
+    }
+  };
+
   const filteredActivities = activities.filter((activity) =>
     activity.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -206,62 +229,75 @@ export default function Feed() {
       {/* Activities List */}
       {!loading && filteredActivities.length > 0 && (
         <div className="space-y-4">
-          {filteredActivities.map((activity) => (
-            <div
-              key={activity.id}
-              className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start gap-4">
-                {/* Sport Icon */}
-                <div className="w-12 h-12 bg-coral-50 rounded-xl flex items-center justify-center text-2xl">
-                  {getSportIcon(activity.sport)}
-                </div>
+          {filteredActivities.map((activity) => {
+            const visibilityBadge = getVisibilityBadge(activity.visibility);
+            const VisibilityIcon = visibilityBadge.icon;
 
-                {/* Activity Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium text-coral-500 uppercase">
-                      {activity.sport}
-                    </span>
-                    <span className="text-xs text-slate-400">•</span>
-                    <span className="text-xs text-slate-500">
-                      {formatDate(activity.date_time)}
-                    </span>
+            return (
+              <div
+                key={activity.id}
+                className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
+              >
+                <div className="flex items-start gap-4">
+                  {/* Sport Icon */}
+                  <div className="w-12 h-12 bg-coral-50 rounded-xl flex items-center justify-center text-2xl shrink-0">
+                    {getSportIcon(activity.sport)}
                   </div>
 
-                  <h3 className="font-semibold text-slate-800 mb-2 truncate">
-                    {activity.title}
-                  </h3>
-
-                  <div className="flex flex-wrap gap-3 text-sm text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Clock size={14} />
-                      {formatTime(activity.date_time)} • {activity.duration}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin size={14} />
-                      {activity.location}
-                    </span>
-                  </div>
-
-                  {/* Organizer */}
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                    <div className="w-6 h-6 bg-coral-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                      {activity.organizer?.full_name?.charAt(0) || "?"}
+                  {/* Activity Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-xs font-medium text-coral-500 uppercase">
+                        {activity.sport}
+                      </span>
+                      <span className="text-xs text-slate-400">•</span>
+                      <span className="text-xs text-slate-500">
+                        {formatDate(activity.date_time)}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${visibilityBadge.color}`}
+                      >
+                        <VisibilityIcon size={10} />
+                        {visibilityBadge.label}
+                      </span>
                     </div>
-                    <span className="text-sm text-slate-600">
-                      {activity.organizer?.full_name || "Unknown"}
-                    </span>
-                    <span className="ml-auto flex items-center gap-1 text-sm text-slate-400">
-                      <Users size={14} />
-                      {activity.current_participants || 0}/
-                      {activity.max_participants || "∞"}
-                    </span>
+
+                    <h3 className="font-semibold text-slate-800 mb-2 truncate">
+                      {activity.title}
+                    </h3>
+
+                    <div className="flex flex-wrap gap-3 text-sm text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <Clock size={14} />
+                        {formatTime(activity.date_time)}
+                        {activity.duration && ` • ${activity.duration}`}
+                        {activity.distance && ` • ${activity.distance}`}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MapPin size={14} />
+                        {activity.location}
+                      </span>
+                    </div>
+
+                    {/* Organizer */}
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                      <div className="w-6 h-6 bg-coral-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                        {activity.organizer?.full_name?.charAt(0) || "?"}
+                      </div>
+                      <span className="text-sm text-slate-600">
+                        {activity.organizer?.full_name || "Unknown"}
+                      </span>
+                      <span className="ml-auto flex items-center gap-1 text-sm text-slate-400">
+                        <Users size={14} />
+                        {activity.current_participants || 0}/
+                        {activity.max_participants || "∞"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

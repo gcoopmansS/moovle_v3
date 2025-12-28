@@ -1,91 +1,70 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Users, Lock, Globe } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 
 const sports = [
-  {
-    id: "tennis",
-    label: "Tennis",
-    icon: "🎾",
-    color: "text-teal-600 border-teal-200 bg-teal-50",
-  },
-  {
-    id: "padel",
-    label: "Padel",
-    icon: "🎾",
-    color: "text-slate-600 border-slate-200 bg-white",
-  },
-  {
-    id: "running",
-    label: "Running",
-    icon: "🏃",
-    color: "text-coral-500 border-coral-200 bg-coral-50",
-  },
-  {
-    id: "cycling",
-    label: "Cycling",
-    icon: "🚴",
-    color: "text-teal-600 border-teal-200 bg-teal-50",
-  },
-  {
-    id: "walking",
-    label: "Walking",
-    icon: "🚶",
-    color: "text-coral-500 border-coral-200 bg-coral-50",
-  },
-  {
-    id: "gym",
-    label: "Gym",
-    icon: "💪",
-    color: "text-coral-500 border-coral-200 bg-coral-50",
-  },
-  {
-    id: "swimming",
-    label: "Swimming",
-    icon: "🏊",
-    color: "text-teal-600 border-teal-200 bg-teal-50",
-  },
-  {
-    id: "basketball",
-    label: "Basketball",
-    icon: "🏀",
-    color: "text-orange-500 border-orange-200 bg-orange-50",
-  },
-  {
-    id: "football",
-    label: "Football",
-    icon: "⚽",
-    color: "text-teal-600 border-teal-200 bg-teal-50",
-  },
-  {
-    id: "yoga",
-    label: "Yoga",
-    icon: "🧘",
-    color: "text-pink-500 border-pink-200 bg-pink-50",
-  },
-  {
-    id: "hiking",
-    label: "Hiking",
-    icon: "🥾",
-    color: "text-slate-600 border-slate-200 bg-white",
-  },
-  {
-    id: "other",
-    label: "Other",
-    icon: "•••",
-    color: "text-slate-600 border-slate-200 bg-white",
-  },
+  { id: "tennis", label: "Tennis", icon: "🎾", usesDistance: false },
+  { id: "padel", label: "Padel", icon: "🎾", usesDistance: false },
+  { id: "running", label: "Running", icon: "🏃", usesDistance: true },
+  { id: "cycling", label: "Cycling", icon: "🚴", usesDistance: true },
+  { id: "walking", label: "Walking", icon: "🚶", usesDistance: true },
+  { id: "gym", label: "Gym", icon: "💪", usesDistance: false },
+  { id: "swimming", label: "Swimming", icon: "🏊", usesDistance: true },
+  { id: "basketball", label: "Basketball", icon: "🏀", usesDistance: false },
+  { id: "football", label: "Football", icon: "⚽", usesDistance: false },
+  { id: "yoga", label: "Yoga", icon: "🧘", usesDistance: false },
+  { id: "hiking", label: "Hiking", icon: "🥾", usesDistance: true },
+  { id: "other", label: "Other", icon: "•••", usesDistance: false },
 ];
 
 const durations = [
   "30 min",
+  "45 min",
   "1 hour",
   "1.5 hours",
   "2 hours",
   "2.5 hours",
   "3 hours",
+  "4 hours",
+  "Half day",
+  "Full day",
+];
+
+const distances = [
+  "5 km",
+  "10 km",
+  "15 km",
+  "20 km",
+  "25 km",
+  "30 km",
+  "40 km",
+  "50 km",
+  "75 km",
+  "100 km",
+  "100+ km",
+];
+
+const visibilityOptions = [
+  {
+    id: "public",
+    label: "Public",
+    description: "Anyone can see and join",
+    icon: Globe,
+  },
+  {
+    id: "mates",
+    label: "Mates Only",
+    description: "Only your mates can see and join",
+    icon: Users,
+  },
+  {
+    id: "invite_only",
+    label: "Invite Only",
+    description: "Only people you invite can join",
+    icon: Lock,
+  },
 ];
 
 export default function CreateActivity() {
@@ -96,10 +75,15 @@ export default function CreateActivity() {
   const [description, setDescription] = useState("");
   const [dateTime, setDateTime] = useState("");
   const [duration, setDuration] = useState("1 hour");
+  const [distance, setDistance] = useState("");
   const [location, setLocation] = useState("");
   const [locationDetails, setLocationDetails] = useState("");
+  const [visibility, setVisibility] = useState("public");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const currentSport = sports.find((s) => s.id === selectedSport);
+  const showDistance = currentSport?.usesDistance || false;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -114,14 +98,16 @@ export default function CreateActivity() {
 
     try {
       const { error: insertError } = await supabase.from("activities").insert({
-        organizer_id: user.id,
+        creator_id: user.id,
         sport: selectedSport,
         title,
         description: description || null,
         date_time: new Date(dateTime).toISOString(),
         duration,
+        distance: showDistance ? distance : null,
         location,
         location_details: locationDetails || null,
+        visibility,
       });
 
       if (insertError) {
@@ -164,7 +150,7 @@ export default function CreateActivity() {
                 onClick={() => setSelectedSport(sport.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
                   selectedSport === sport.id
-                    ? sport.color
+                    ? "bg-coral-500 text-white border-coral-500"
                     : "text-slate-600 border-gray-200 bg-white hover:bg-gray-50"
                 }`}
               >
@@ -203,20 +189,22 @@ export default function CreateActivity() {
           />
         </div>
 
-        {/* Date/Time and Duration */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              <Clock size={16} className="inline mr-1" />
-              When
-            </label>
-            <input
-              type="datetime-local"
-              value={dateTime}
-              onChange={(e) => setDateTime(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
-            />
-          </div>
+        {/* Date/Time */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            <Clock size={16} className="inline mr-1" />
+            When
+          </label>
+          <input
+            type="datetime-local"
+            value={dateTime}
+            onChange={(e) => setDateTime(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* Duration and Distance */}
+        <div className={`grid gap-4 ${showDistance ? "grid-cols-2" : "grid-cols-1"}`}>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Duration
@@ -233,13 +221,32 @@ export default function CreateActivity() {
               ))}
             </select>
           </div>
+          {showDistance && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Distance
+              </label>
+              <select
+                value={distance}
+                onChange={(e) => setDistance(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+              >
+                <option value="">Select distance</option>
+                {distances.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Location */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             <MapPin size={16} className="inline mr-1" />
-            Location
+            Starting Location
           </label>
           <input
             type="text"
@@ -255,6 +262,66 @@ export default function CreateActivity() {
             onChange={(e) => setLocationDetails(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
           />
+        </div>
+
+        {/* Visibility */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-3">
+            Who can see this activity?
+          </label>
+          <div className="space-y-3">
+            {visibilityOptions.map((option) => (
+              <label
+                key={option.id}
+                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                  visibility === option.id
+                    ? "border-coral-500 bg-coral-50"
+                    : "border-gray-200 bg-white hover:bg-gray-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="visibility"
+                  value={option.id}
+                  checked={visibility === option.id}
+                  onChange={(e) => setVisibility(e.target.value)}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    visibility === option.id
+                      ? "bg-coral-500 text-white"
+                      : "bg-gray-100 text-slate-500"
+                  }`}
+                >
+                  <option.icon size={20} />
+                </div>
+                <div className="flex-1">
+                  <p
+                    className={`font-medium ${
+                      visibility === option.id
+                        ? "text-coral-600"
+                        : "text-slate-800"
+                    }`}
+                  >
+                    {option.label}
+                  </p>
+                  <p className="text-sm text-slate-500">{option.description}</p>
+                </div>
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    visibility === option.id
+                      ? "border-coral-500"
+                      : "border-gray-300"
+                  }`}
+                >
+                  {visibility === option.id && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-coral-500"></div>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Error Message */}
