@@ -3,16 +3,18 @@ import { Search, Plus, MapPin, Clock, Users, Lock, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import { sports, getSportIcon, formatDuration } from "../config/sports";
 
 const dateFilters = ["All", "Today", "Tomorrow", "This Week"];
+
+// Build sport filters from config (add "All Sports" option)
 const sportFilters = [
-  { id: "all", label: "All Sports", icon: null, color: "coral" },
-  { id: "tennis", label: "Tennis", icon: "🎾", color: null },
-  { id: "padel", label: "Padel", icon: "🎾", color: null },
-  { id: "running", label: "Running", icon: "🏃", color: null },
-  { id: "cycling", label: "Cycling", icon: "🚴", color: null },
-  { id: "walking", label: "Walking", icon: "🏃", color: null },
-  { id: "gym", label: "Gym", icon: "💪", color: null },
+  { id: "all", label: "All Sports", icon: null },
+  ...sports.map((sport) => ({
+    id: sport.id,
+    label: sport.label,
+    icon: sport.icon,
+  })),
 ];
 
 export default function Feed() {
@@ -113,23 +115,6 @@ export default function Feed() {
       minute: "2-digit",
       hour12: true,
     });
-  };
-
-  const getSportIcon = (sport) => {
-    const icons = {
-      tennis: "🎾",
-      padel: "🎾",
-      running: "🏃",
-      cycling: "🚴",
-      walking: "🚶",
-      gym: "💪",
-      swimming: "🏊",
-      basketball: "🏀",
-      football: "⚽",
-      yoga: "🧘",
-      hiking: "🥾",
-    };
-    return icons[sport] || "🏃";
   };
 
   const getVisibilityBadge = (visibility) => {
@@ -270,8 +255,9 @@ export default function Feed() {
                       <span className="flex items-center gap-1">
                         <Clock size={14} />
                         {formatTime(activity.date_time)}
-                        {activity.duration && ` • ${activity.duration}`}
-                        {activity.distance && ` • ${activity.distance}`}
+                        {activity.duration &&
+                          ` • ${formatDuration(activity.duration)}`}
+                        {activity.distance && ` • ${activity.distance} km`}
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin size={14} />

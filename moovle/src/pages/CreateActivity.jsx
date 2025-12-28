@@ -1,80 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, MapPin, Users, Lock, Globe } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import { sports, visibilityOptions, getSportById } from "../config/sports";
 
-const sports = [
-  { id: "tennis", label: "Tennis", icon: "🎾", usesDistance: false },
-  { id: "padel", label: "Padel", icon: "🎾", usesDistance: false },
-  { id: "running", label: "Running", icon: "🏃", usesDistance: true },
-  { id: "cycling", label: "Cycling", icon: "🚴", usesDistance: true },
-  { id: "walking", label: "Walking", icon: "🚶", usesDistance: true },
-  { id: "gym", label: "Gym", icon: "💪", usesDistance: false },
-  { id: "swimming", label: "Swimming", icon: "🏊", usesDistance: true },
-  { id: "basketball", label: "Basketball", icon: "🏀", usesDistance: false },
-  { id: "football", label: "Football", icon: "⚽", usesDistance: false },
-  { id: "yoga", label: "Yoga", icon: "🧘", usesDistance: false },
-  { id: "hiking", label: "Hiking", icon: "🥾", usesDistance: true },
-  { id: "other", label: "Other", icon: "•••", usesDistance: false },
-];
-
-const durations = [
-  "30 min",
-  "45 min",
-  "1 hour",
-  "1.5 hours",
-  "2 hours",
-  "2.5 hours",
-  "3 hours",
-  "4 hours",
-  "Half day",
-  "Full day",
-];
-
-const distances = [
-  "5 km",
-  "10 km",
-  "15 km",
-  "20 km",
-  "25 km",
-  "30 km",
-  "40 km",
-  "50 km",
-  "75 km",
-  "100 km",
-  "100+ km",
-];
-
-const visibilityOptions = [
-  {
-    id: "public",
-    label: "Public",
-    description: "Anyone can see and join",
-    icon: Globe,
-  },
-  {
-    id: "mates",
-    label: "Mates Only",
-    description: "Only your mates can see and join",
-    icon: Users,
-  },
-  {
-    id: "invite_only",
-    label: "Invite Only",
-    description: "Only people you invite can join",
-    icon: Lock,
-  },
-];
+// Map visibility icons
+const visibilityIcons = {
+  public: Globe,
+  mates: Users,
+  invite_only: Lock,
+};
 
 export default function CreateActivity() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedSport, setSelectedSport] = useState("tennis");
+  const [selectedSport, setSelectedSport] = useState("running");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dateTime, setDateTime] = useState("");
-  const [duration, setDuration] = useState("1 hour");
+  const [durationType, setDurationType] = useState("duration"); // "duration" or "distance"
+  const [duration, setDuration] = useState(60); // Duration in minutes
   const [distance, setDistance] = useState("");
   const [location, setLocation] = useState("");
   const [locationDetails, setLocationDetails] = useState("");
@@ -82,8 +28,18 @@ export default function CreateActivity() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const currentSport = sports.find((s) => s.id === selectedSport);
-  const showDistance = currentSport?.usesDistance || false;
+  const currentSport = getSportById(selectedSport);
+  const supportsDistance = currentSport?.supportsDistance || false;
+
+  // Update defaults when sport changes
+  useEffect(() => {
+    if (currentSport) {
+      setDuration(currentSport.defaultDuration);
+      if (currentSport.supportsDistance) {
+        setDistance(String(currentSport.defaultDistance));
+      }
+    }
+  }, [selectedSport, currentSport]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,8 +59,11 @@ export default function CreateActivity() {
         title,
         description: description || null,
         date_time: new Date(dateTime).toISOString(),
-        duration,
-        distance: showDistance ? distance : null,
+        duration: durationType === "duration" ? duration : null,
+        distance:
+          supportsDistance && durationType === "distance" && distance
+            ? parseInt(distance, 10)
+            : null,
         location,
         location_details: locationDetails || null,
         visibility,
@@ -203,41 +162,70 @@ export default function CreateActivity() {
           />
         </div>
 
-        {/* Duration and Distance */}
-        <div className={`grid gap-4 ${showDistance ? "grid-cols-2" : "grid-cols-1"}`}>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Duration
-            </label>
-            <select
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
-            >
-              {durations.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
-          {showDistance && (
+        {/* Duration or Distance */}
+        <div>
+          {supportsDistance && (
+            <div className="flex gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setDurationType("duration")}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  durationType === "duration"
+                    ? "bg-coral-500 text-white"
+                    : "bg-gray-100 text-slate-600 hover:bg-gray-200"
+                }`}
+              >
+                Duration
+              </button>
+              <button
+                type="button"
+                onClick={() => setDurationType("distance")}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  durationType === "distance"
+                    ? "bg-coral-500 text-white"
+                    : "bg-gray-100 text-slate-600 hover:bg-gray-200"
+                }`}
+              >
+                Distance
+              </button>
+            </div>
+          )}
+
+          {(!supportsDistance || durationType === "duration") && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Distance
+                Duration (minutes)
               </label>
-              <select
-                value={distance}
-                onChange={(e) => setDistance(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
-              >
-                <option value="">Select distance</option>
-                {distances.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 60"
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+                />
+                <span className="text-slate-500 font-medium">min</span>
+              </div>
+            </div>
+          )}
+
+          {supportsDistance && durationType === "distance" && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Distance (km)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 10"
+                  value={distance}
+                  onChange={(e) => setDistance(e.target.value)}
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+                />
+                <span className="text-slate-500 font-medium">km</span>
+              </div>
             </div>
           )}
         </div>
@@ -270,57 +258,62 @@ export default function CreateActivity() {
             Who can see this activity?
           </label>
           <div className="space-y-3">
-            {visibilityOptions.map((option) => (
-              <label
-                key={option.id}
-                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
-                  visibility === option.id
-                    ? "border-coral-500 bg-coral-50"
-                    : "border-gray-200 bg-white hover:bg-gray-50"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="visibility"
-                  value={option.id}
-                  checked={visibility === option.id}
-                  onChange={(e) => setVisibility(e.target.value)}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
+            {visibilityOptions.map((option) => {
+              const IconComponent = visibilityIcons[option.id];
+              return (
+                <label
+                  key={option.id}
+                  className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
                     visibility === option.id
-                      ? "bg-coral-500 text-white"
-                      : "bg-gray-100 text-slate-500"
+                      ? "border-coral-500 bg-coral-50"
+                      : "border-gray-200 bg-white hover:bg-gray-50"
                   }`}
                 >
-                  <option.icon size={20} />
-                </div>
-                <div className="flex-1">
-                  <p
-                    className={`font-medium ${
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value={option.id}
+                    checked={visibility === option.id}
+                    onChange={(e) => setVisibility(e.target.value)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
                       visibility === option.id
-                        ? "text-coral-600"
-                        : "text-slate-800"
+                        ? "bg-coral-500 text-white"
+                        : "bg-gray-100 text-slate-500"
                     }`}
                   >
-                    {option.label}
-                  </p>
-                  <p className="text-sm text-slate-500">{option.description}</p>
-                </div>
-                <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    visibility === option.id
-                      ? "border-coral-500"
-                      : "border-gray-300"
-                  }`}
-                >
-                  {visibility === option.id && (
-                    <div className="w-2.5 h-2.5 rounded-full bg-coral-500"></div>
-                  )}
-                </div>
-              </label>
-            ))}
+                    <IconComponent size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p
+                      className={`font-medium ${
+                        visibility === option.id
+                          ? "text-coral-600"
+                          : "text-slate-800"
+                      }`}
+                    >
+                      {option.label}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {option.description}
+                    </p>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      visibility === option.id
+                        ? "border-coral-500"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {visibility === option.id && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-coral-500"></div>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
           </div>
         </div>
 

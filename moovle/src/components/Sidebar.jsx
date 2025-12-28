@@ -29,7 +29,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white h-screen flex flex-col border-r border-gray-100">
+    <aside className="w-64 bg-white h-screen flex flex-col border-r border-gray-100 fixed left-0 top-0">
       {/* Logo */}
       <div className="p-6">
         <h1 className="text-2xl font-bold">
