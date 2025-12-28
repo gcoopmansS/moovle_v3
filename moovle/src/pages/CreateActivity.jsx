@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, MapPin } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 
 const sports = [
   {
@@ -88,6 +90,7 @@ const durations = [
 
 export default function CreateActivity() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedSport, setSelectedSport] = useState("tennis");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -95,20 +98,43 @@ export default function CreateActivity() {
   const [duration, setDuration] = useState("1 hour");
   const [location, setLocation] = useState("");
   const [locationDetails, setLocationDetails] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Handle form submission
-    console.log({
-      selectedSport,
-      title,
-      description,
-      dateTime,
-      duration,
-      location,
-      locationDetails,
-    });
-    navigate("/");
+    setError("");
+
+    if (!title || !dateTime || !location) {
+      setError("Please fill in title, date/time, and location");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { error: insertError } = await supabase.from("activities").insert({
+        organizer_id: user.id,
+        sport: selectedSport,
+        title,
+        description: description || null,
+        date_time: new Date(dateTime).toISOString(),
+        duration,
+        location,
+        location_details: locationDetails || null,
+      });
+
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+
+      navigate("/");
+    } catch {
+      setError("Failed to create activity. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -231,12 +257,20 @@ export default function CreateActivity() {
           />
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl">
+            {error}
+          </div>
+        )}
+
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-coral-500 text-white py-4 rounded-xl font-semibold hover:bg-coral-600 transition-colors"
+          disabled={isSubmitting}
+          className="w-full bg-coral-500 text-white py-4 rounded-xl font-semibold hover:bg-coral-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Create Activity
+          {isSubmitting ? "Creating..." : "Create Activity"}
         </button>
       </form>
     </div>
