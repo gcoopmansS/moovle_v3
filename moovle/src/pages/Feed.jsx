@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const dateFilters = ["All", "Today", "Tomorrow", "This Week"];
 const sportFilters = [
@@ -14,15 +15,20 @@ const sportFilters = [
 ];
 
 export default function Feed() {
+  const { profile } = useAuth();
   const [selectedDate, setSelectedDate] = useState("All");
   const [selectedSport, setSelectedSport] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const firstName = profile?.full_name?.split(" ")[0] || "there";
 
   return (
     <div className="w-full">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 mb-1">Hey, Gil 👋</h1>
+        <h1 className="text-3xl font-bold text-slate-800 mb-1">
+          Hey, {firstName} 👋
+        </h1>
         <p className="text-slate-500">Find activities with your mates</p>
       </div>
 
