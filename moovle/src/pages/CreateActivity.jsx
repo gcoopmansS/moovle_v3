@@ -111,7 +111,7 @@ export default function CreateActivity() {
                 key={sport.id}
                 type="button"
                 onClick={() => setSelectedSport(sport.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
                   selectedSport === sport.id
                     ? "bg-coral-500 text-white border-coral-500"
                     : "text-slate-600 border-gray-200 bg-white hover:bg-gray-50"
@@ -173,7 +173,7 @@ export default function CreateActivity() {
               <button
                 type="button"
                 onClick={() => setDurationType("duration")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                className={`cursor-pointer flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                   durationType === "duration"
                     ? "bg-coral-500 text-white"
                     : "bg-gray-100 text-slate-600 hover:bg-gray-200"
@@ -184,7 +184,7 @@ export default function CreateActivity() {
               <button
                 type="button"
                 onClick={() => setDurationType("distance")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                className={`cursor-pointer flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                   durationType === "distance"
                     ? "bg-coral-500 text-white"
                     : "bg-gray-100 text-slate-600 hover:bg-gray-200"
