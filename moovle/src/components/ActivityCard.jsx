@@ -1,10 +1,73 @@
 import { MapPin, Clock, Users, Lock, Globe } from "lucide-react";
 import { getSportIcon, formatDuration } from "../config/sports";
 
-export default function ActivityCard({ activity, onClick, children }) {
-  // Accepts activity object, optional onClick handler, and children for extra actions
+export default function ActivityCard({
+  activity,
+  onClick,
+  children,
+  joined,
+  isHost,
+  currentCount,
+  capacity,
+  loading,
+  onJoin,
+  onLeave,
+}) {
   const visibilityBadge = getVisibilityBadge(activity.visibility);
   const VisibilityIcon = visibilityBadge.icon;
+
+  // Determine action button/badge
+  let action = null;
+  if (isHost) {
+    action = (
+      <span className="ml-2 px-2 py-1 rounded bg-slate-100 text-slate-500 text-xs font-medium border border-slate-200">
+        Host
+      </span>
+    );
+  } else if (joined) {
+    action = (
+      <div className="flex items-center gap-2 ml-2">
+        <button
+          className="border border-coral-500 text-coral-500 bg-white px-3 py-1 rounded-lg text-sm font-semibold flex items-center gap-1"
+          disabled={loading}
+        >
+          Joined <span className="text-green-500">✓</span>
+        </button>
+        <button
+          className="text-xs text-slate-400 hover:text-coral-500 underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            onLeave();
+          }}
+          disabled={loading}
+        >
+          {loading ? "Leaving..." : "Leave"}
+        </button>
+      </div>
+    );
+  } else if (currentCount >= capacity) {
+    action = (
+      <button
+        className="ml-2 bg-slate-200 text-slate-400 px-3 py-1 rounded-lg text-sm font-semibold cursor-not-allowed"
+        disabled
+      >
+        Full
+      </button>
+    );
+  } else {
+    action = (
+      <button
+        className="ml-2 bg-coral-500 text-white px-3 py-1 rounded-lg text-sm font-semibold hover:bg-coral-600 transition-colors"
+        onClick={(e) => {
+          e.stopPropagation();
+          onJoin();
+        }}
+        disabled={loading}
+      >
+        {loading ? "Joining..." : "Join"}
+      </button>
+    );
+  }
 
   return (
     <div
@@ -52,7 +115,7 @@ export default function ActivityCard({ activity, onClick, children }) {
             </span>
           </div>
 
-          {/* Organizer */}
+          {/* Organizer and Actions */}
           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
             <div className="w-6 h-6 bg-coral-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
               {activity.organizer?.full_name?.charAt(0) || "?"}
@@ -62,10 +125,11 @@ export default function ActivityCard({ activity, onClick, children }) {
             </span>
             <span className="ml-auto flex items-center gap-1 text-sm text-slate-400">
               <Users size={14} />
-              {activity.current_participants || 0}/
-              {activity.max_participants || "∞"}
+              {currentCount || 0}/{capacity || "∞"}
+              {action}
             </span>
           </div>
+
           {children}
         </div>
       </div>

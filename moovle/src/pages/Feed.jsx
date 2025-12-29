@@ -19,7 +19,7 @@ const sportFilters = [
 ];
 
 export default function Feed() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [selectedDate, setSelectedDate] = useState("All");
   const [selectedSport, setSelectedSport] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,7 +113,6 @@ export default function Feed() {
         />
         <input
           type="text"
-          placeholder="Search activities..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
@@ -155,24 +154,22 @@ export default function Feed() {
         ))}
       </div>
 
-      {/* Loading State */}
-      {loading && (
+      {/* Conditional Rendering */}
+      {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coral-500"></div>
         </div>
-      )}
-
-      {/* Activities List */}
-      {!loading && filteredActivities.length > 0 && (
+      ) : filteredActivities.length > 0 ? (
         <div className="space-y-4">
           {filteredActivities.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} />
+            <ActivityCard
+              key={activity.id}
+              activity={activity}
+              isHost={activity.creator_id === user.id}
+            />
           ))}
         </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && filteredActivities.length === 0 && (
+      ) : (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
             <Search className="text-slate-400" size={28} />
