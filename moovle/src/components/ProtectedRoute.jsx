@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -17,6 +17,17 @@ export default function ProtectedRoute({ children }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If profile is missing city or favorite_sports, redirect to signup-profile
+  if (
+    profile &&
+    (!profile.city ||
+      !profile.favorite_sports ||
+      (Array.isArray(profile.favorite_sports) &&
+        profile.favorite_sports.length === 0))
+  ) {
+    return <Navigate to="/signup-profile" replace />;
   }
 
   return children;

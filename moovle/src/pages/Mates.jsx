@@ -12,9 +12,18 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 
+function uniqueById(arr) {
+  const seen = new Set();
+  return arr.filter((u) => {
+    if (seen.has(u.id)) return false;
+    seen.add(u.id);
+    return true;
+  });
+}
+
 export default function Mates() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("mates");
+  const [activeTab, setActiveTab] = useState("discover");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -23,23 +32,20 @@ export default function Mates() {
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const [suggestedMates, setSuggestedMates] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const tabs = [
-    { id: "mates", label: "Mates", count: mates.length },
+    { id: "discover", label: "Discover" },
     {
       id: "requests",
       label: "Requests",
-      count: incomingRequests.length > 0 ? incomingRequests.length : null,
+      count:
+        (incomingRequests.length > 0 ? incomingRequests.length : 0) +
+        (outgoingRequests.length > 0 ? outgoingRequests.length : 0),
     },
-    { id: "pending", label: "Pending", count: outgoingRequests.length },
+    { id: "mates", label: "Mates", count: mates.length },
   ];
-
-  useEffect(() => {
-    if (user) {
-      fetchMatesData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   const fetchMatesData = async () => {
     setLoading(true);
@@ -110,6 +116,150 @@ export default function Mates() {
     }
   };
 
+  // Haversine formula for distance in km
+  function calculateDistance(lat1, lng1, lat2, lng2) {
+    if (lat1 == null || lng1 == null || lat2 == null || lng2 == null)
+      return null;
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Format distance for display
+  function formatDistance(km) {
+    if (km == null) return null;
+    if (km < 1) {
+      return `${Math.round(km * 1000)} m`;
+    } else if (km < 10) {
+      return `${km.toFixed(1)} km`;
+    } else {
+      return `${Math.round(km)} km`;
+    }
+  }
+
+  const fetchSuggestedMates = async () => {
+    setLoadingSuggestions(true);
+    try {
+      const { data: myProfile, error: myProfileError } = await supabase
+        .from("profiles")
+        .select("id, city, city_lat, city_lng, favorite_sports")
+        .eq("id", user.id)
+        .single();
+      if (myProfileError) throw myProfileError;
+
+      const mateIds = mates.map((m) => m.mate.id);
+
+      // 1. By favorite_sports (with location)
+      let sportMatches = [];
+      if (myProfile.favorite_sports && myProfile.favorite_sports.length > 0) {
+        const { data } = await supabase
+          .from("profiles")
+          .select(
+            "id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports"
+          )
+          .neq("id", user.id)
+          .overlaps("favorite_sports", myProfile.favorite_sports)
+          .limit(30);
+        sportMatches = data || [];
+      }
+
+      // 2. Mates-of-mates (with location)
+      let matesOfMates = [];
+      if (mateIds.length > 0) {
+        const { data: matesMates } = await supabase
+          .from("mates")
+          .select(
+            `id, requester_id, receiver_id, status,
+          requester:profiles!requester_id(id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports),
+          receiver:profiles!receiver_id(id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports)`
+          )
+          .eq("status", "accepted")
+          .or(
+            mateIds
+              .map((id) => `requester_id.eq.${id},receiver_id.eq.${id}`)
+              .join(",")
+          );
+        if (matesMates) {
+          matesOfMates = matesMates
+            .map((m) => [m.requester, m.receiver])
+            .flat()
+            .filter((u) => u.id !== user.id && !mateIds.includes(u.id));
+        }
+      }
+
+      // 3. By city (with location)
+      let cityMatches = [];
+      if (myProfile.city) {
+        const { data } = await supabase
+          .from("profiles")
+          .select(
+            "id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports"
+          )
+          .neq("id", user.id)
+          .eq("city", myProfile.city)
+          .limit(30);
+        cityMatches = data || [];
+      }
+
+      // Combine and filter
+      const allSuggestions = uniqueById([
+        ...sportMatches,
+        ...matesOfMates,
+        ...cityMatches,
+      ]).filter(
+        (u) =>
+          u.id !== user.id &&
+          !mateIds.includes(u.id) &&
+          !incomingRequests.some((r) => r.requester.id === u.id) &&
+          !outgoingRequests.some((r) => r.receiver.id === u.id)
+      );
+
+      // Calculate distance for each suggestion
+      const suggestionsWithDistance = allSuggestions.map((u) => {
+        const distance =
+          myProfile.city_lat && myProfile.city_lng && u.city_lat && u.city_lng
+            ? calculateDistance(
+                myProfile.city_lat,
+                myProfile.city_lng,
+                u.city_lat,
+                u.city_lng
+              )
+            : null;
+        return { ...u, distance };
+      });
+
+      // Sort by distance (closest first, nulls last)
+      suggestionsWithDistance.sort((a, b) => {
+        if (a.distance == null && b.distance == null) return 0;
+        if (a.distance == null) return 1;
+        if (b.distance == null) return -1;
+        return a.distance - b.distance;
+      });
+
+      setSuggestedMates(suggestionsWithDistance.slice(0, 10));
+    } catch {
+      setSuggestedMates([]);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchMatesData();
+      fetchSuggestedMates;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   // Search for users
   useEffect(() => {
     const searchUsers = async () => {
@@ -162,6 +312,17 @@ export default function Mates() {
 
       if (error) throw error;
 
+      // Send notification to receiver
+      await supabase.from("notifications").insert({
+        user_id: receiverId,
+        type: "mate_request",
+        title: "New mate request",
+        message: `${
+          user.user_metadata?.full_name || "Someone"
+        } sent you a mate request.`,
+        related_user_id: user.id,
+      });
+
       // Refresh data
       await fetchMatesData();
       setSearchQuery("");
@@ -182,6 +343,26 @@ export default function Mates() {
         .eq("id", requestId);
 
       if (error) throw error;
+
+      // Get the mate request to find the requester_id
+      const { data: mateData } = await supabase
+        .from("mates")
+        .select("requester_id")
+        .eq("id", requestId)
+        .single();
+
+      if (mateData) {
+        await supabase.from("notifications").insert({
+          user_id: mateData.requester_id,
+          type: "mate_accepted",
+          title: "Mate request accepted",
+          message: `${
+            user.user_metadata?.full_name || "Someone"
+          } accepted your mate request.`,
+          related_user_id: user.id,
+        });
+      }
+
       await fetchMatesData();
     } catch (error) {
       console.error("Error accepting request:", error);
@@ -296,72 +477,141 @@ export default function Mates() {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="relative mb-6">
-        <Search
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-          size={20}
-        />
-        <input
-          type="text"
-          placeholder={
-            activeTab === "mates" ? "Search mates..." : "Search for people..."
-          }
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
-        />
-        {isSearching && (
-          <Loader2
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 animate-spin"
-            size={20}
-          />
-        )}
-      </div>
-
-      {/* Search Results (when searching for new people) */}
-      {searchQuery.length >= 2 && searchResults.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-slate-500 mb-3">
-            Add new mates
+      {activeTab === "discover" && (
+        <div className="mb-8">
+          <h3 className="text-base font-semibold text-slate-700 mb-3">
+            Suggested Mates
           </h3>
-          <div className="space-y-2">
-            {searchResults.map((person) => (
-              <div
-                key={person.id}
-                className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100"
-              >
-                <div className="w-12 h-12 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">
-                  {getInitial(person.full_name)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-slate-800 truncate">
-                    {person.full_name || "Unknown"}
-                  </p>
-                  {person.city && (
-                    <p className="text-sm text-slate-500">{person.city}</p>
-                  )}
-                </div>
-                <button
-                  onClick={() => sendMateRequest(person.id)}
-                  disabled={actionLoading === person.id}
-                  className="flex items-center gap-2 px-4 py-2 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors disabled:opacity-50"
+          {loadingSuggestions ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="animate-spin text-coral-500" size={24} />
+            </div>
+          ) : suggestedMates.length > 0 ? (
+            <div className="space-y-2">
+              {suggestedMates.map((person) => (
+                <div
+                  key={person.id}
+                  className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100"
                 >
-                  {actionLoading === person.id ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <UserPlus size={16} />
-                  )}
-                  Add
-                </button>
-              </div>
-            ))}
-          </div>
+                  <div className="w-12 h-12 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    {getInitial(person.full_name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-800 truncate">
+                      {person.full_name || "Unknown"}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {person.city && (
+                        <p className="text-sm text-slate-500">{person.city}</p>
+                      )}
+                      {person.distance != null && (
+                        <span className="text-xs text-coral-500 font-medium ml-2">
+                          {formatDistance(person.distance)} away
+                        </span>
+                      )}
+                    </div>
+                    {person.favorite_sports &&
+                      person.favorite_sports.length > 0 && (
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {person.favorite_sports.join(", ")}
+                        </p>
+                      )}
+                  </div>
+                  <button
+                    onClick={() => sendMateRequest(person.id)}
+                    disabled={actionLoading === person.id}
+                    className="flex items-center gap-2 px-4 py-2 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors disabled:opacity-50"
+                  >
+                    {actionLoading === person.id ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <UserPlus size={16} />
+                    )}
+                    Add
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-slate-400 text-sm">
+              No suggestions yet. Try adding your city and favorite sports to
+              your profile!
+            </div>
+          )}
         </div>
       )}
 
-      {/* No search results */}
-      {searchQuery.length >= 2 &&
+      {/* Search (only in Discover and Mates tab) */}
+      {(activeTab === "discover" || activeTab === "mates") && (
+        <div className="relative mb-6">
+          <Search
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+            size={20}
+          />
+          <input
+            type="text"
+            placeholder={
+              activeTab === "mates" ? "Search mates..." : "Search for people..."
+            }
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+          />
+          {isSearching && (
+            <Loader2
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 animate-spin"
+              size={20}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Discover Tab: Search Results (when searching for new people) */}
+      {activeTab === "discover" &&
+        searchQuery.length >= 2 &&
+        searchResults.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-slate-500 mb-3">
+              Add new mates
+            </h3>
+            <div className="space-y-2">
+              {searchResults.map((person) => (
+                <div
+                  key={person.id}
+                  className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100"
+                >
+                  <div className="w-12 h-12 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    {getInitial(person.full_name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-800 truncate">
+                      {person.full_name || "Unknown"}
+                    </p>
+                    {person.city && (
+                      <p className="text-sm text-slate-500">{person.city}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => sendMateRequest(person.id)}
+                    disabled={actionLoading === person.id}
+                    className="flex items-center gap-2 px-4 py-2 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors disabled:opacity-50"
+                  >
+                    {actionLoading === person.id ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <UserPlus size={16} />
+                    )}
+                    Add
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      {/* Discover Tab: No search results */}
+      {activeTab === "discover" &&
+        searchQuery.length >= 2 &&
         searchResults.length === 0 &&
         !isSearching && (
           <div className="mb-6 p-4 bg-gray-50 rounded-xl text-center text-slate-500">
@@ -379,6 +629,128 @@ export default function Mates() {
       {/* Content based on active tab */}
       {!loading && (
         <>
+          {/* Discover Tab: show nothing if no search, or search results above */}
+          {activeTab === "discover" && searchQuery.length < 2 && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <UserPlus className="text-slate-400" size={28} />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                Find new mates
+              </h3>
+              <p className="text-slate-500 text-center">
+                Search for people to send mate requests
+              </p>
+            </div>
+          )}
+
+          {/* Requests Tab: incoming and outgoing requests */}
+          {activeTab === "requests" && (
+            <>
+              {/* Incoming Requests */}
+              <h3 className="text-base font-semibold text-slate-700 mb-2">
+                Incoming requests
+              </h3>
+              {incomingRequests.length > 0 ? (
+                <div className="space-y-2 mb-6">
+                  {incomingRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100"
+                    >
+                      <div className="w-12 h-12 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {getInitial(request.requester.full_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-800 truncate">
+                          {request.requester.full_name || "Unknown"}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          Sent {formatDate(request.created_at)}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => acceptRequest(request.id)}
+                          disabled={actionLoading === request.id}
+                          className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === request.id ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <Check size={16} />
+                          )}
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => declineRequest(request.id)}
+                          disabled={actionLoading === request.id}
+                          className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-slate-600 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                        >
+                          <X size={16} />
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mb-6 flex flex-col items-center justify-center py-10">
+                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2">
+                    <Clock className="text-slate-400" size={20} />
+                  </div>
+                  <p className="text-slate-500">No incoming requests</p>
+                </div>
+              )}
+
+              {/* Outgoing Requests */}
+              <h3 className="text-base font-semibold text-slate-700 mb-2">
+                Pending requests
+              </h3>
+              {outgoingRequests.length > 0 ? (
+                <div className="space-y-2">
+                  {outgoingRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100"
+                    >
+                      <div className="w-12 h-12 bg-slate-300 rounded-full flex items-center justify-center text-white font-semibold">
+                        {getInitial(request.receiver.full_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-800 truncate">
+                          {request.receiver.full_name || "Unknown"}
+                        </p>
+                        <p className="text-sm text-slate-500 flex items-center gap-1">
+                          <Clock size={12} />
+                          Pending • Sent {formatDate(request.created_at)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => cancelRequest(request.id)}
+                        disabled={actionLoading === request.id}
+                        className="px-3 py-2 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        {actionLoading === request.id ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          "Cancel"
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2">
+                    <UserPlus className="text-slate-400" size={20} />
+                  </div>
+                  <p className="text-slate-500">No pending requests</p>
+                </div>
+              )}
+            </>
+          )}
+
           {/* Mates Tab */}
           {activeTab === "mates" && (
             <>
@@ -426,121 +798,7 @@ export default function Mates() {
                     No mates yet
                   </h3>
                   <p className="text-slate-500 text-center">
-                    Search for people above to add your first mate
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Incoming Requests Tab */}
-          {activeTab === "requests" && (
-            <>
-              {incomingRequests.length > 0 ? (
-                <div className="space-y-2">
-                  {incomingRequests.map((request) => (
-                    <div
-                      key={request.id}
-                      className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100"
-                    >
-                      <div className="w-12 h-12 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {getInitial(request.requester.full_name)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-800 truncate">
-                          {request.requester.full_name || "Unknown"}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          Sent {formatDate(request.created_at)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => acceptRequest(request.id)}
-                          disabled={actionLoading === request.id}
-                          className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-                        >
-                          {actionLoading === request.id ? (
-                            <Loader2 size={16} className="animate-spin" />
-                          ) : (
-                            <Check size={16} />
-                          )}
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => declineRequest(request.id)}
-                          disabled={actionLoading === request.id}
-                          className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-slate-600 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-                        >
-                          <X size={16} />
-                          Decline
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                    <Clock className="text-slate-400" size={28} />
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                    No pending requests
-                  </h3>
-                  <p className="text-slate-500">
-                    You don't have any mate requests to review
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Outgoing/Pending Requests Tab */}
-          {activeTab === "pending" && (
-            <>
-              {outgoingRequests.length > 0 ? (
-                <div className="space-y-2">
-                  {outgoingRequests.map((request) => (
-                    <div
-                      key={request.id}
-                      className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100"
-                    >
-                      <div className="w-12 h-12 bg-slate-300 rounded-full flex items-center justify-center text-white font-semibold">
-                        {getInitial(request.receiver.full_name)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-800 truncate">
-                          {request.receiver.full_name || "Unknown"}
-                        </p>
-                        <p className="text-sm text-slate-500 flex items-center gap-1">
-                          <Clock size={12} />
-                          Pending • Sent {formatDate(request.created_at)}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => cancelRequest(request.id)}
-                        disabled={actionLoading === request.id}
-                        className="px-3 py-2 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        {actionLoading === request.id ? (
-                          <Loader2 size={16} className="animate-spin" />
-                        ) : (
-                          "Cancel"
-                        )}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                    <UserPlus className="text-slate-400" size={28} />
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                    No pending requests
-                  </h3>
-                  <p className="text-slate-500">
-                    Search for people to send mate requests
+                    Search for people in Discover to add your first mate
                   </p>
                 </div>
               )}

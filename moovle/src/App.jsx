@@ -9,6 +9,7 @@ import Mates from "./pages/Mates";
 import Notifications from "./pages/Notifications";
 import CreateActivity from "./pages/CreateActivity";
 import Profile from "./pages/Profile";
+import SignupProfile from "./pages/SignupProfile";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/signup-profile" element={<SignupProfile />} />
           <Route
             path="/"
             element={

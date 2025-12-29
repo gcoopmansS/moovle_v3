@@ -25,7 +25,7 @@ export default function Login() {
       if (isSignUp) {
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
-        setMessage("Check your email to confirm your account!");
+        navigate("/signup-profile");
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;

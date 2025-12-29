@@ -33,6 +33,7 @@ export default function LocationInput({
   value,
   onChange,
   placeholder = "Search for a location...",
+  type = "all", // 'all' or 'city'
 }) {
   const [query, setQuery] = useState(value || "");
   const [suggestions, setSuggestions] = useState([]);
@@ -93,13 +94,27 @@ export default function LocationInput({
         url += `&proximity=${userLocation.lng},${userLocation.lat}`;
       }
 
+      // If type is 'city', add types=place to Mapbox API (place = city/town/village)
+      if (type === "city") {
+        url += `&types=place`;
+      }
+
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.suggestions) {
         // For each suggestion, we need to retrieve full details
+        let filteredSuggestions = data.suggestions;
+        // If type is 'city', filter suggestions to only those with type 'place' (city/town/village)
+        if (type === "city") {
+          filteredSuggestions = filteredSuggestions.filter(
+            (s) =>
+              (s.types && s.types.includes("place")) ||
+              s.feature_type === "place"
+          );
+        }
         const suggestionsWithDetails = await Promise.all(
-          data.suggestions.map(async (suggestion) => {
+          filteredSuggestions.map(async (suggestion) => {
             // Get full place details to get coordinates
             const retrieveUrl = `https://api.mapbox.com/search/searchbox/v1/retrieve/${suggestion.mapbox_id}?access_token=${MAPBOX_TOKEN}&session_token=moovle-session`;
             const detailResponse = await fetch(retrieveUrl);
@@ -112,7 +127,6 @@ export default function LocationInput({
                   lat: feature.geometry.coordinates[1],
                 }
               : null;
-
             // Calculate distance if user location and coords are available
             const distance =
               userLocation && coords
@@ -134,6 +148,7 @@ export default function LocationInput({
               coordinates: coords,
               distance,
               category: suggestion.poi_category_ids?.[0] || null,
+              country: suggestion.context?.country?.name || null,
             };
           })
         );
@@ -166,10 +181,10 @@ export default function LocationInput({
   };
 
   const handleSelectSuggestion = (suggestion) => {
-    setQuery(suggestion.fullAddress);
+    setQuery(suggestion.name);
     setSuggestions([]);
     setShowSuggestions(false);
-    onChange(suggestion.fullAddress, suggestion.coordinates);
+    onChange(suggestion.name, suggestion.coordinates, suggestion.country || "");
   };
 
   const handleClear = () => {
@@ -202,7 +217,7 @@ export default function LocationInput({
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+          onFocus={() => setShowSuggestions(true)}
           placeholder={placeholder}
           className="w-full pl-11 pr-10 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
         />
