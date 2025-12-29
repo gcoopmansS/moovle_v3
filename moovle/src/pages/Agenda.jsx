@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { Calendar, List } from "lucide-react";
+import { Calendar, List, MoreHorizontal } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import ActivityCard from "../components/ActivityCard";
 
-const tabs = ["Upcoming", "Past", "Organized"];
+const tabs = ["Upcoming", "Organized"];
 
 export default function Agenda() {
+  const [showPast, setShowPast] = useState(false);
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("Upcoming");
   const [viewMode, setViewMode] = useState("list");
@@ -62,8 +63,7 @@ export default function Agenda() {
   const filtered = activities
     .filter((a) => {
       const date = new Date(a.date_time);
-      if (activeTab === "Upcoming") return date >= now;
-      if (activeTab === "Past") return date < now;
+      if (activeTab === "Upcoming" && !showPast) return date >= now;
       if (activeTab === "Organized") return a.creator_id === user.id;
       return true;
     })
@@ -77,7 +77,7 @@ export default function Agenda() {
         <div className="flex gap-2">
           <button
             onClick={() => setViewMode("list")}
-            className={`p-2 rounded-lg transition-colors ${
+            className={`p-2 rounded-lg transition-colors cursor-pointer ${
               viewMode === "list" ? "bg-slate-200" : "hover:bg-slate-100"
             }`}
           >
@@ -85,7 +85,7 @@ export default function Agenda() {
           </button>
           <button
             onClick={() => setViewMode("calendar")}
-            className={`p-2 rounded-lg transition-colors ${
+            className={`p-2 rounded-lg transition-colors cursor-pointer ${
               viewMode === "calendar" ? "bg-slate-200" : "hover:bg-slate-100"
             }`}
           >
@@ -94,44 +94,72 @@ export default function Agenda() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-8 bg-gray-100 p-1 rounded-lg w-fit">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? "bg-coral-500 text-white"
-                : "text-slate-600 hover:bg-gray-200"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* Activities List */}
-      {!loading && filtered.length > 0 && (
-        <div className="space-y-4">
-          {filtered.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} />
+      {/* Tabs & Show Past Button */}
+      <div className="flex items-center gap-2 mb-8">
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                activeTab === tab
+                  ? "bg-coral-500 text-white"
+                  : "text-slate-600 hover:bg-gray-200"
+              }`}
+            >
+              {tab}
+            </button>
           ))}
         </div>
-      )}
+        {activeTab === "Upcoming" && (
+          <button
+            onClick={() => setShowPast((v) => !v)}
+            className={`ml-4 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors cursor-pointer ${
+              showPast
+                ? "bg-slate-200 border-slate-300 text-slate-700"
+                : "bg-white border-gray-200 text-slate-500 hover:bg-gray-50"
+            }`}
+            title={showPast ? "Hide past activities" : "Show past activities"}
+          >
+            <MoreHorizontal size={18} />
+            {showPast ? "Hide past" : "Show past"}
+          </button>
+        )}
+      </div>
 
-      {/* Empty State */}
-      {!loading && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-            <Calendar className="text-slate-400" size={28} />
+      {/* Activities Timeline List */}
+      {!loading && filtered.length > 0 && (
+        <div className="relative">
+          {/* Vertical timeline line */}
+          <div className="absolute top-0 left-6 w-0.5 h-full bg-gray-200 z-0" />
+          <div className="flex flex-col gap-12">
+            {filtered.map((activity) => {
+              const isHost = activity.creator_id === user.id;
+              const joined = !isHost;
+              const isPast = new Date(activity.date_time) < now;
+              return (
+                <div
+                  key={activity.id}
+                  className="flex flex-row items-center min-h-28 group"
+                >
+                  {/* Timeline column: dot and line */}
+                  <div className="flex flex-col items-center justify-center w-12 relative z-10">
+                    <div className="w-4 h-4 rounded-full bg-coral-500 border-4 border-white shadow-md group-hover:scale-110 transition-transform" />
+                  </div>
+                  {/* Card column */}
+                  <div className="flex-1">
+                    <ActivityCard
+                      activity={activity}
+                      agendaMode={true}
+                      isHost={isHost}
+                      joined={joined}
+                      isPast={isPast}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">
-            No activities
-          </h3>
-          <p className="text-slate-500">
-            You haven't joined any {activeTab.toLowerCase()} activities
-          </p>
         </div>
       )}
     </div>

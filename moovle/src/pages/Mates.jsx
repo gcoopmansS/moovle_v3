@@ -455,7 +455,7 @@ export default function Mates() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 px-6 py-2 rounded-md text-sm font-medium transition-colors relative ${
+            className={`flex-1 px-6 py-2 rounded-md text-sm font-medium transition-colors relative cursor-pointer ${
               activeTab === tab.id
                 ? "bg-coral-500 text-white"
                 : "text-slate-600 hover:bg-gray-200"
@@ -520,7 +520,7 @@ export default function Mates() {
                   <button
                     onClick={() => sendMateRequest(person.id)}
                     disabled={actionLoading === person.id}
-                    className="flex items-center gap-2 px-4 py-2 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {actionLoading === person.id ? (
                       <Loader2 size={16} className="animate-spin" />
@@ -673,7 +673,7 @@ export default function Mates() {
                         <button
                           onClick={() => acceptRequest(request.id)}
                           disabled={actionLoading === request.id}
-                          className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           {actionLoading === request.id ? (
                             <Loader2 size={16} className="animate-spin" />
@@ -685,7 +685,7 @@ export default function Mates() {
                         <button
                           onClick={() => declineRequest(request.id)}
                           disabled={actionLoading === request.id}
-                          className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-slate-600 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-slate-600 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           <X size={16} />
                           Decline
@@ -729,7 +729,7 @@ export default function Mates() {
                       <button
                         onClick={() => cancelRequest(request.id)}
                         disabled={actionLoading === request.id}
-                        className="px-3 py-2 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        className="px-3 py-2 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                       >
                         {actionLoading === request.id ? (
                           <Loader2 size={16} className="animate-spin" />

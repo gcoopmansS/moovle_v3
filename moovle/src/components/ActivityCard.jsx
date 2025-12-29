@@ -12,6 +12,8 @@ export default function ActivityCard({
   loading,
   onJoin,
   onLeave,
+  agendaMode = false,
+  isPast = false,
 }) {
   const visibilityBadge = getVisibilityBadge(activity.visibility);
   const VisibilityIcon = visibilityBadge.icon;
@@ -28,13 +30,13 @@ export default function ActivityCard({
     action = (
       <div className="flex items-center gap-2 ml-2">
         <button
-          className="border border-coral-500 text-coral-500 bg-white px-3 py-1 rounded-lg text-sm font-semibold flex items-center gap-1"
+          className="border border-coral-500 text-coral-500 bg-white px-3 py-1 rounded-lg text-sm font-semibold flex items-center gap-1 cursor-pointer"
           disabled={loading}
         >
           Joined <span className="text-green-500">✓</span>
         </button>
         <button
-          className="text-xs text-slate-400 hover:text-coral-500 underline"
+          className="text-xs text-slate-400 hover:text-coral-500 underline cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             onLeave();
@@ -45,35 +47,39 @@ export default function ActivityCard({
         </button>
       </div>
     );
-  } else if (currentCount >= capacity) {
-    action = (
-      <button
-        className="ml-2 bg-slate-200 text-slate-400 px-3 py-1 rounded-lg text-sm font-semibold cursor-not-allowed"
-        disabled
-      >
-        Full
-      </button>
-    );
-  } else {
-    action = (
-      <button
-        className="ml-2 bg-coral-500 text-white px-3 py-1 rounded-lg text-sm font-semibold hover:bg-coral-600 transition-colors"
-        onClick={(e) => {
-          e.stopPropagation();
-          onJoin();
-        }}
-        disabled={loading}
-      >
-        {loading ? "Joining..." : "Join"}
-      </button>
-    );
+  } else if (!agendaMode) {
+    if (currentCount >= capacity) {
+      action = (
+        <button
+          className="ml-2 bg-slate-200 text-slate-400 px-3 py-1 rounded-lg text-sm font-semibold cursor-not-allowed cursor-pointer"
+          disabled
+        >
+          Full
+        </button>
+      );
+    } else {
+      action = (
+        <button
+          className="ml-2 bg-coral-500 text-white px-3 py-1 rounded-lg text-sm font-semibold hover:bg-coral-600 transition-colors cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            onJoin();
+          }}
+          disabled={loading}
+        >
+          {loading ? "Joining..." : "Join"}
+        </button>
+      );
+    }
   }
 
+  const cardClasses = [
+    "bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer",
+    isPast ? "opacity-60 grayscale" : "",
+  ].join(" ");
+
   return (
-    <div
-      className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
-      onClick={onClick}
-    >
+    <div className={cardClasses} onClick={onClick}>
       <div className="flex items-start gap-4">
         {/* Sport Icon */}
         <div className="w-12 h-12 bg-coral-50 rounded-xl flex items-center justify-center text-2xl shrink-0">

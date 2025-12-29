@@ -18,6 +18,7 @@ const SPORTS = [
 ];
 
 export default function SignupProfile() {
+  // eslint-disable-next-line no-unused-vars
   const { user, updateProfile } = useAuth();
   const [city, setCity] = useState("");
   const [cityCoords, setCityCoords] = useState(null);

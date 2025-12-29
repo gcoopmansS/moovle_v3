@@ -92,7 +92,7 @@ export default function CreateActivity() {
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
         >
           <ArrowLeft size={24} className="text-slate-600" />
         </button>
@@ -111,7 +111,7 @@ export default function CreateActivity() {
                 key={sport.id}
                 type="button"
                 onClick={() => setSelectedSport(sport.id)}
-                className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors cursor-pointer ${
                   selectedSport === sport.id
                     ? "bg-coral-500 text-white border-coral-500"
                     : "text-slate-600 border-gray-200 bg-white hover:bg-gray-50"
@@ -173,7 +173,7 @@ export default function CreateActivity() {
               <button
                 type="button"
                 onClick={() => setDurationType("duration")}
-                className={`cursor-pointer flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                   durationType === "duration"
                     ? "bg-coral-500 text-white"
                     : "bg-gray-100 text-slate-600 hover:bg-gray-200"
@@ -184,7 +184,7 @@ export default function CreateActivity() {
               <button
                 type="button"
                 onClick={() => setDurationType("distance")}
-                className={`cursor-pointer flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                   durationType === "distance"
                     ? "bg-coral-500 text-white"
                     : "bg-gray-100 text-slate-600 hover:bg-gray-200"
@@ -332,7 +332,7 @@ export default function CreateActivity() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-coral-500 text-white py-4 rounded-xl font-semibold hover:bg-coral-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-coral-500 text-white py-4 rounded-xl font-semibold hover:bg-coral-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {isSubmitting ? "Creating..." : "Create Activity"}
         </button>

@@ -53,7 +53,7 @@ export default function Profile() {
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
         >
           <ArrowLeft size={24} className="text-slate-600" />
         </button>
@@ -66,7 +66,7 @@ export default function Profile() {
           <div className="w-24 h-24 bg-coral-500 rounded-full flex items-center justify-center text-white text-3xl font-semibold">
             {getInitial()}
           </div>
-          <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border border-gray-200">
+          <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border border-gray-200 cursor-pointer">
             <Camera size={16} className="text-slate-600" />
           </button>
         </div>

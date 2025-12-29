@@ -88,7 +88,7 @@ export default function Sidebar() {
         </NavLink>
         <button
           onClick={handleSignOut}
-          className="w-full px-4 py-3 flex items-center gap-3 text-slate-600 hover:bg-gray-50 transition-colors"
+          className="w-full px-4 py-3 flex items-center gap-3 text-slate-600 hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <LogOut size={20} />
           <span className="font-medium">Sign Out</span>

@@ -25,13 +25,62 @@ export default function Feed() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState({}); // { [activityId]: boolean }
+  const [joinedIds, setJoinedIds] = useState([]); // [activityId]
 
   const firstName = profile?.full_name?.split(" ")[0] || "there";
 
   useEffect(() => {
     fetchActivities();
+    fetchJoinedActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedSport]);
+
+  // Fetch activities user has joined (for button state)
+  const fetchJoinedActivities = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("activity_participants")
+      .select("activity_id")
+      .eq("user_id", user.id);
+    if (!error && data) {
+      setJoinedIds(data.map((a) => a.activity_id));
+    }
+  };
+  // Join activity handler
+  const handleJoin = async (activity) => {
+    if (!user) return;
+    setJoining((j) => ({ ...j, [activity.id]: true }));
+    // Add participant
+    const { error } = await supabase
+      .from("activity_participants")
+      .insert({ activity_id: activity.id, user_id: user.id });
+    if (!error) {
+      setJoinedIds((ids) => [...ids, activity.id]);
+      // Send notification to organizer
+      await supabase.from("notifications").insert({
+        user_id: activity.creator_id,
+        type: "join",
+        activity_id: activity.id,
+        sender_id: user.id,
+        created_at: new Date().toISOString(),
+        read: false,
+      });
+    }
+    setJoining((j) => ({ ...j, [activity.id]: false }));
+  };
+  // Leave activity handler (optional, for completeness)
+  const handleLeave = async (activity) => {
+    if (!user) return;
+    setJoining((j) => ({ ...j, [activity.id]: true }));
+    await supabase
+      .from("activity_participants")
+      .delete()
+      .eq("activity_id", activity.id)
+      .eq("user_id", user.id);
+    setJoinedIds((ids) => ids.filter((id) => id !== activity.id));
+    setJoining((j) => ({ ...j, [activity.id]: false }));
+  };
 
   const fetchActivities = async () => {
     setLoading(true);
@@ -125,7 +174,7 @@ export default function Feed() {
           <button
             key={filter}
             onClick={() => setSelectedDate(filter)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
               selectedDate === filter
                 ? "bg-slate-800 text-white"
                 : "bg-white text-slate-600 border border-gray-200 hover:bg-gray-50"
@@ -142,7 +191,7 @@ export default function Feed() {
           <button
             key={sport.id}
             onClick={() => setSelectedSport(sport.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
               selectedSport === sport.id
                 ? "bg-coral-500 text-white"
                 : "bg-white text-slate-600 border border-gray-200 hover:bg-gray-50"
@@ -161,13 +210,21 @@ export default function Feed() {
         </div>
       ) : filteredActivities.length > 0 ? (
         <div className="space-y-4">
-          {filteredActivities.map((activity) => (
-            <ActivityCard
-              key={activity.id}
-              activity={activity}
-              isHost={activity.creator_id === user.id}
-            />
-          ))}
+          {filteredActivities.map((activity) => {
+            const isHost = activity.creator_id === user.id;
+            const joined = joinedIds.includes(activity.id);
+            return (
+              <ActivityCard
+                key={activity.id}
+                activity={activity}
+                isHost={isHost}
+                joined={joined}
+                loading={joining[activity.id]}
+                onJoin={() => handleJoin(activity)}
+                onLeave={() => handleLeave(activity)}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20">
