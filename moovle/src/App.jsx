@@ -50,6 +50,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<Feed />} />
+        <Route path="feed" element={<Feed />} />
         <Route path="agenda" element={<Agenda />} />
         <Route path="mates" element={<Mates />} />
         <Route path="notifications" element={<Notifications />} />

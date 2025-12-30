@@ -2,13 +2,6 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Home, Calendar, Users, Bell, Plus, LogOut } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
-const navItems = [
-  { to: "/", icon: Home, label: "Feed" },
-  { to: "/agenda", icon: Calendar, label: "Agenda" },
-  { to: "/mates", icon: Users, label: "Mates" },
-  { to: "/notifications", icon: Bell, label: "Notifications" },
-];
-
 export default function Sidebar() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -41,22 +34,58 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-4">
         {/* eslint-disable-next-line no-unused-vars */}
-        {navItems.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-                isActive
-                  ? "bg-coral-500 text-white"
-                  : "text-slate-600 hover:bg-gray-50"
-              }`
-            }
-          >
-            <Icon size={20} />
-            <span className="font-medium">{label}</span>
-          </NavLink>
-        ))}
+        <NavLink
+          to="/feed"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
+              isActive
+                ? "bg-coral-500 text-white"
+                : "text-slate-600 hover:bg-gray-50"
+            }`
+          }
+        >
+          {/* Feed icon here */}
+          <span className="font-medium">Feed</span>
+        </NavLink>
+        <NavLink
+          to="/agenda"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
+              isActive
+                ? "bg-coral-500 text-white"
+                : "text-slate-600 hover:bg-gray-50"
+            }`
+          }
+        >
+          {/* Agenda icon here */}
+          <span className="font-medium">Agenda</span>
+        </NavLink>
+        <NavLink
+          to="/mates"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
+              isActive
+                ? "bg-coral-500 text-white"
+                : "text-slate-600 hover:bg-gray-50"
+            }`
+          }
+        >
+          {/* Mates icon here */}
+          <span className="font-medium">Mates</span>
+        </NavLink>
+        <NavLink
+          to="/notifications"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
+              isActive
+                ? "bg-coral-500 text-white"
+                : "text-slate-600 hover:bg-gray-50"
+            }`
+          }
+        >
+          {/* Notifications icon here */}
+          <span className="font-medium">Notifications</span>
+        </NavLink>
       </nav>
 
       {/* New Activity Button */}
