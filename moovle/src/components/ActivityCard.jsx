@@ -182,9 +182,9 @@ function formatDate(dateString) {
 }
 
 function formatTime(dateString) {
-  return new Date(dateString).toLocaleTimeString("en-US", {
-    hour: "numeric",
+  return new Date(dateString).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: false,
   });
 }
