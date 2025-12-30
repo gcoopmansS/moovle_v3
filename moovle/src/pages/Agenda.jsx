@@ -92,14 +92,7 @@ export default function Agenda() {
   );
 
   // Find next upcoming activity (closest future start)
-  let nextDayKey = null;
-  for (const key of sortedDayKeys) {
-    const acts = dayGroups[key];
-    if (acts.some((a) => new Date(a.date_time) >= now)) {
-      nextDayKey = key;
-      break;
-    }
-  }
+  // (Removed unused nextDayKey logic)
 
   // Helper: get day label
   function getDayLabel(dayKey) {
@@ -107,13 +100,6 @@ export default function Agenda() {
     if (isToday(d)) return `Today · ${format(d, "MMM d")}`;
     if (isTomorrow(d)) return `Tomorrow · ${format(d, "MMM d")}`;
     return `${format(d, "EEE")} · ${format(d, "MMM d")}`;
-  }
-
-  // Helper: get dot status for a day group
-  function getDayDotStatus(acts) {
-    if (acts.some((a) => a.creator_id === user.id)) return "host";
-    if (acts.some((a) => a.creator_id !== user.id)) return "joined";
-    return "neutral";
   }
 
   // Helper: is day in past
