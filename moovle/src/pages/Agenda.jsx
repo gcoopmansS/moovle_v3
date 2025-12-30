@@ -9,6 +9,7 @@ export default function Agenda() {
   const [showPast, setShowPast] = useState(false);
   const { user } = useAuth();
   const [activities, setActivities] = useState([]);
+  const [participantCounts, setParticipantCounts] = useState({}); // { [activityId]: count }
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,6 +17,28 @@ export default function Agenda() {
     fetchActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Fetch participant counts for all activities
+  useEffect(() => {
+    if (activities.length === 0) return;
+    const fetchCounts = async () => {
+      const { data, error } = await supabase
+        .from("activity_participants")
+        .select("activity_id, count:user_id")
+        .in(
+          "activity_id",
+          activities.map((a) => a.id)
+        );
+      if (!error && data) {
+        const counts = {};
+        data.forEach((row) => {
+          counts[row.activity_id] = row.count;
+        });
+        setParticipantCounts(counts);
+      }
+    };
+    fetchCounts();
+  }, [activities]);
 
   const fetchActivities = async () => {
     setLoading(true);
@@ -206,6 +229,14 @@ export default function Agenda() {
                               isHost={isHost}
                               joined={joined}
                               isPast={isPast}
+                              currentCount={
+                                (participantCounts[activity.id] || 0) + 1
+                              }
+                              capacity={
+                                activity.max_participants ||
+                                activity.capacity ||
+                                "∞"
+                              }
                             />
                           </div>
                         );
@@ -246,6 +277,14 @@ export default function Agenda() {
                               isHost={isHost}
                               joined={joined}
                               isPast={isPast}
+                              currentCount={
+                                (participantCounts[activity.id] || 0) + 1
+                              }
+                              capacity={
+                                activity.max_participants ||
+                                activity.capacity ||
+                                "∞"
+                              }
                             />
                           </div>
                         );
@@ -289,6 +328,14 @@ export default function Agenda() {
                             isHost={isHost}
                             joined={joined}
                             isPast={isPast}
+                            currentCount={
+                              (participantCounts[activity.id] || 0) + 1
+                            }
+                            capacity={
+                              activity.max_participants ||
+                              activity.capacity ||
+                              "∞"
+                            }
                           />
                         </div>
                       );
