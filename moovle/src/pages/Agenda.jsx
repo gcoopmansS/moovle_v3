@@ -5,12 +5,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import ActivityCard from "../components/ActivityCard";
 
-// Tabs removed for simpler UI; future filtering options can be added here
-
 export default function Agenda() {
   const [showPast, setShowPast] = useState(false);
   const { user } = useAuth();
-  // Tabs removed; only showPast toggle remains
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,14 +20,11 @@ export default function Agenda() {
   const fetchActivities = async () => {
     setLoading(true);
     try {
-      // Get activities where user is a participant or organizer
-      // 1. Activities user created
       const { data: organized } = await supabase
         .from("activities")
         .select(`*, organizer:profiles!creator_id(id, full_name, avatar_url)`)
         .eq("creator_id", user.id);
 
-      // 2. Activities user joined (activity_participants)
       const { data: joinedLinks } = await supabase
         .from("activity_participants")
         .select("activity_id")
@@ -46,7 +40,6 @@ export default function Agenda() {
         joined = joinedActs || [];
       }
 
-      // Combine and dedupe (in case user is both creator and participant)
       const all = [...(organized || []), ...joined].filter(
         (a, i, arr) => arr.findIndex((b) => b.id === a.id) === i
       );
@@ -58,7 +51,6 @@ export default function Agenda() {
     }
   };
 
-  // Filtering: show upcoming or all (if showPast)
   const now = new Date();
   const filtered = activities
     .filter((a) => {
@@ -68,10 +60,8 @@ export default function Agenda() {
     })
     .sort((a, b) => new Date(a.date_time) - new Date(b.date_time));
 
-  // Group activities by user's local day (YYYY-MM-DD)
   function getLocalDayKey(date) {
     const d = new Date(date);
-    // Get local year, month, day
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
@@ -80,21 +70,15 @@ export default function Agenda() {
 
   const dayGroups = {};
   filtered.forEach((activity) => {
-    // Always use local time for grouping
     const dayKey = getLocalDayKey(activity.date_time);
     if (!dayGroups[dayKey]) dayGroups[dayKey] = [];
     dayGroups[dayKey].push(activity);
   });
 
-  // Sort day groups ascending
   const sortedDayKeys = Object.keys(dayGroups).sort(
     (a, b) => new Date(a) - new Date(b)
   );
 
-  // Find next upcoming activity (closest future start)
-  // (Removed unused nextDayKey logic)
-
-  // Helper: get day label
   function getDayLabel(dayKey) {
     const d = new Date(dayKey);
     if (isToday(d)) return `Today · ${format(d, "MMM d")}`;
@@ -102,14 +86,232 @@ export default function Agenda() {
     return `${format(d, "EEE")} · ${format(d, "MMM d")}`;
   }
 
+  function renderEmptyState() {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center min-h-[60vh] py-12">
+        <div className="mb-8">
+          <div className="w-16 h-16 rounded-full bg-coral-500 border-4 border-white shadow-md flex items-center justify-center mx-auto">
+            <span className="text-white text-3xl">+</span>
+          </div>
+        </div>
+        <div className="text-2xl font-semibold text-slate-700 mb-3 text-center">
+          No activities yet
+        </div>
+        <div className="text-slate-500 mb-8 text-center">
+          Start by creating your first activity or join one from the feed!
+        </div>
+        <div className="flex gap-4 justify-center">
+          <button
+            onClick={() => (window.location.href = "/create-activity")}
+            className="px-6 py-3 rounded-full bg-coral-500 text-white font-semibold shadow hover:bg-coral-600 transition-colors cursor-pointer"
+          >
+            + New Activity
+          </button>
+          <button
+            onClick={() => (window.location.href = "/feed")}
+            className="px-6 py-3 rounded-full bg-white border border-coral-500 text-coral-500 font-semibold shadow hover:bg-coral-50 transition-colors cursor-pointer"
+          >
+            Find one to join
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderOnlyPastState() {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center min-h-[60vh] py-12">
+        <div className="mb-8">
+          <div className="w-16 h-16 rounded-full bg-coral-500 border-4 border-white shadow-md flex items-center justify-center mx-auto">
+            <span className="text-white text-3xl">+</span>
+          </div>
+        </div>
+        <div className="text-2xl font-semibold text-slate-700 mb-3 text-center">
+          No upcoming activities
+        </div>
+        <div className="text-slate-500 mb-8 text-center">
+          You have no activities planned. Create a new one or join an activity
+          from the feed!
+        </div>
+        <div className="flex gap-4 justify-center">
+          <button
+            onClick={() => (window.location.href = "/create-activity")}
+            className="px-6 py-3 rounded-full bg-coral-500 text-white font-semibold shadow hover:bg-coral-600 transition-colors cursor-pointer"
+          >
+            + New Activity
+          </button>
+          <button
+            onClick={() => (window.location.href = "/feed")}
+            className="px-6 py-3 rounded-full bg-white border border-coral-500 text-coral-500 font-semibold shadow hover:bg-coral-50 transition-colors cursor-pointer"
+          >
+            Find one to join
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderTimeline() {
+    const todayKey = getLocalDayKey(now);
+    const pastDayKeys = sortedDayKeys
+      .filter((dayKey) => dayKey < todayKey)
+      .sort((a, b) => new Date(b) - new Date(a));
+    const futureDayKeys = sortedDayKeys
+      .filter((dayKey) => dayKey > todayKey)
+      .sort((a, b) => new Date(a) - new Date(b));
+
+    return (
+      <div className="relative">
+        <div className="absolute top-0 left-6 w-0.5 h-full bg-gray-100 z-0" />
+        <div className="flex flex-col gap-12">
+          {sortedDayKeys.length === 0 && (
+            <div className="flex flex-row items-center min-h-28 group">
+              <div className="flex flex-col items-center justify-center w-12 relative z-10">
+                <div className="w-4 h-4 rounded-full bg-gray-300 border-4 border-white shadow-md opacity-60" />
+              </div>
+              <div className="flex-1">
+                <div className="p-6 rounded-lg border border-gray-200 bg-white text-slate-500 text-center shadow-sm">
+                  No activities planned
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Past days above today */}
+          {showPast &&
+            pastDayKeys.map((dayKey) => {
+              const acts = dayGroups[dayKey].sort(
+                (a, b) => new Date(a.date_time) - new Date(b.date_time)
+              );
+              return (
+                <div key={dayKey} className="flex flex-row items-start group">
+                  <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
+                    <div className="rounded-full border-4 border-white shadow-md transition-transform bg-coral-500 w-5 h-5 opacity-60" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-lg text-slate-400">
+                        {getDayLabel(dayKey)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                      {acts.map((activity) => {
+                        const isHost = activity.creator_id === user.id;
+                        const joined = !isHost;
+                        const isPast = new Date(activity.date_time) < now;
+                        return (
+                          <div key={activity.id} className="opacity-60">
+                            <ActivityCard
+                              activity={activity}
+                              agendaMode={true}
+                              isHost={isHost}
+                              joined={joined}
+                              isPast={isPast}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          {/* Today */}
+          {(() => {
+            const todayActs =
+              dayGroups[todayKey]?.sort(
+                (a, b) => new Date(a.date_time) - new Date(b.date_time)
+              ) || [];
+            return (
+              <div key={todayKey} className="flex flex-row items-start group">
+                <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
+                  <div className="rounded-full border-4 border-white shadow-md transition-transform bg-green-500 w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold text-lg text-slate-700">
+                      Today · {format(now, "MMM d")}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {todayActs.length > 0 ? (
+                      todayActs.map((activity) => {
+                        const isHost = activity.creator_id === user.id;
+                        const joined = !isHost;
+                        const isPast = new Date(activity.date_time) < now;
+                        return (
+                          <div key={activity.id}>
+                            <ActivityCard
+                              activity={activity}
+                              agendaMode={true}
+                              isHost={isHost}
+                              joined={joined}
+                              isPast={isPast}
+                            />
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-6 rounded-xl border border-gray-100 bg-white text-slate-500 text-center">
+                        No activities planned today
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          {/* Future days below today */}
+          {futureDayKeys.map((dayKey) => {
+            const acts = dayGroups[dayKey].sort(
+              (a, b) => new Date(a.date_time) - new Date(b.date_time)
+            );
+            return (
+              <div key={dayKey} className="flex flex-row items-start group">
+                <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
+                  <div className="rounded-full border-4 border-white shadow-md transition-transform bg-coral-500 w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold text-lg text-slate-700">
+                      {getDayLabel(dayKey)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {acts.map((activity) => {
+                      const isHost = activity.creator_id === user.id;
+                      const joined = !isHost;
+                      const isPast = new Date(activity.date_time) < now;
+                      return (
+                        <div key={activity.id}>
+                          <ActivityCard
+                            activity={activity}
+                            agendaMode={true}
+                            isHost={isHost}
+                            joined={joined}
+                            isPast={isPast}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Main render
+  const hasUpcoming = activities.some((a) => new Date(a.date_time) >= now);
+  const hasPast = activities.some((a) => new Date(a.date_time) < now);
+
   return (
     <div className="w-full">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-slate-800">My Agenda</h1>
       </div>
-
-      {/* Show Past Button only if there are activities */}
       {activities.length > 0 && (
         <div className="flex items-center gap-2 mb-8">
           <button
@@ -126,234 +328,12 @@ export default function Agenda() {
           </button>
         </div>
       )}
-
-      {/* Activities Timeline List or CTA */}
       {!loading &&
-        (activities.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center min-h-[60vh] py-12">
-            <div className="mb-8">
-              <div className="w-16 h-16 rounded-full bg-coral-500 border-4 border-white shadow-md flex items-center justify-center mx-auto">
-                <span className="text-white text-3xl">+</span>
-              </div>
-            </div>
-            <div className="text-2xl font-semibold text-slate-700 mb-3 text-center">
-              No activities yet
-            </div>
-            <div className="text-slate-500 mb-8 text-center">
-              Start by creating your first activity or join one from the feed!
-            </div>
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={() => (window.location.href = "/create-activity")}
-                className="px-6 py-3 rounded-full bg-coral-500 text-white font-semibold shadow hover:bg-coral-600 transition-colors cursor-pointer"
-              >
-                + New Activity
-              </button>
-              <button
-                onClick={() => (window.location.href = "/feed")}
-                className="px-6 py-3 rounded-full bg-white border border-coral-500 text-coral-500 font-semibold shadow hover:bg-coral-50 transition-colors cursor-pointer"
-              >
-                Find one to join
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="relative">
-            {/* Vertical timeline line - lighter, thinner, only spans visible groups */}
-            <div className="absolute top-0 left-6 w-0.5 h-full bg-gray-100 z-0" />
-            <div className="flex flex-col gap-12">
-              {/* Timeline as before */}
-              {/* ...existing code... */}
-              <>
-                {sortedDayKeys.length === 0 && (
-                  <div className="flex flex-row items-center min-h-28 group">
-                    <div className="flex flex-col items-center justify-center w-12 relative z-10">
-                      <div className="w-4 h-4 rounded-full bg-gray-300 border-4 border-white shadow-md opacity-60" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="p-6 rounded-lg border border-gray-200 bg-white text-slate-500 text-center shadow-sm">
-                        No activities planned
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {/* Render past days above today, then today, then future days below today */}
-                {(() => {
-                  const todayKey = getLocalDayKey(now);
-                  // Split day keys into past, today, future
-                  const pastDayKeys = sortedDayKeys
-                    .filter((dayKey) => dayKey < todayKey)
-                    .sort((a, b) => new Date(b) - new Date(a)); // Descending
-                  const futureDayKeys = sortedDayKeys
-                    .filter((dayKey) => dayKey > todayKey)
-                    .sort((a, b) => new Date(a) - new Date(b)); // Ascending
-
-                  // Render past days (if showPast)
-                  return (
-                    <>
-                      {showPast &&
-                        pastDayKeys.map((dayKey) => {
-                          const acts = dayGroups[dayKey].sort(
-                            (a, b) =>
-                              new Date(a.date_time) - new Date(b.date_time)
-                          );
-                          return (
-                            <div
-                              key={dayKey}
-                              className="flex flex-row items-start group"
-                            >
-                              {/* Timeline column: dot and line */}
-                              <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
-                                <div
-                                  className={`rounded-full border-4 border-white shadow-md transition-transform bg-coral-500 w-5 h-5 opacity-60`}
-                                />
-                              </div>
-                              {/* Card column */}
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="font-semibold text-lg text-slate-400">
-                                    {getDayLabel(dayKey)}
-                                  </span>
-                                </div>
-                                <div className="flex flex-col gap-4">
-                                  {acts.map((activity) => {
-                                    const isHost =
-                                      activity.creator_id === user.id;
-                                    const joined = !isHost;
-                                    const isPast =
-                                      new Date(activity.date_time) < now;
-                                    return (
-                                      <div
-                                        key={activity.id}
-                                        className="opacity-60"
-                                      >
-                                        <ActivityCard
-                                          activity={activity}
-                                          agendaMode={true}
-                                          isHost={isHost}
-                                          joined={joined}
-                                          isPast={isPast}
-                                        />
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                      {/* Today */}
-                      {(() => {
-                        const todayActs =
-                          dayGroups[todayKey]?.sort(
-                            (a, b) =>
-                              new Date(a.date_time) - new Date(b.date_time)
-                          ) || [];
-                        // Today dot: green and larger
-                        return (
-                          <div
-                            key={todayKey}
-                            className="flex flex-row items-start group"
-                          >
-                            {/* Timeline column: dot and line */}
-                            <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
-                              <div className="rounded-full border-4 border-white shadow-md transition-transform bg-green-500 w-6 h-6" />
-                            </div>
-                            {/* Card column */}
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="font-semibold text-lg text-slate-700">
-                                  Today · {format(now, "MMM d")}
-                                </span>
-                              </div>
-                              <div className="flex flex-col gap-4">
-                                {todayActs.length > 0 ? (
-                                  todayActs.map((activity) => {
-                                    const isHost =
-                                      activity.creator_id === user.id;
-                                    const joined = !isHost;
-                                    const isPast =
-                                      new Date(activity.date_time) < now;
-                                    return (
-                                      <div key={activity.id}>
-                                        <ActivityCard
-                                          activity={activity}
-                                          agendaMode={true}
-                                          isHost={isHost}
-                                          joined={joined}
-                                          isPast={isPast}
-                                        />
-                                      </div>
-                                    );
-                                  })
-                                ) : (
-                                  <div className="p-6 rounded-xl border border-gray-100 bg-white text-slate-500 text-center">
-                                    No activities planned today
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Future days */}
-                      {futureDayKeys.map((dayKey) => {
-                        const acts = dayGroups[dayKey].sort(
-                          (a, b) =>
-                            new Date(a.date_time) - new Date(b.date_time)
-                        );
-                        return (
-                          <div
-                            key={dayKey}
-                            className="flex flex-row items-start group"
-                          >
-                            {/* Timeline column: dot and line */}
-                            <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
-                              <div
-                                className={`rounded-full border-4 border-white shadow-md transition-transform bg-coral-500 w-5 h-5`}
-                              />
-                            </div>
-                            {/* Card column */}
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="font-semibold text-lg text-slate-700">
-                                  {getDayLabel(dayKey)}
-                                </span>
-                              </div>
-                              <div className="flex flex-col gap-4">
-                                {acts.map((activity) => {
-                                  const isHost =
-                                    activity.creator_id === user.id;
-                                  const joined = !isHost;
-                                  const isPast =
-                                    new Date(activity.date_time) < now;
-                                  return (
-                                    <div key={activity.id}>
-                                      <ActivityCard
-                                        activity={activity}
-                                        agendaMode={true}
-                                        isHost={isHost}
-                                        joined={joined}
-                                        isPast={isPast}
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </>
-                  );
-                })()}
-              </>
-              {/* ...end existing code... */}
-            </div>
-          </div>
-        ))}
+        (activities.length === 0
+          ? renderEmptyState()
+          : !hasUpcoming && hasPast && !showPast
+          ? renderOnlyPastState()
+          : renderTimeline())}
     </div>
   );
 }
