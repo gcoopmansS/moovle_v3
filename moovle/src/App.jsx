@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -12,11 +11,10 @@ import CreateActivity from "./pages/CreateActivity";
 import Profile from "./pages/Profile";
 import SignupProfile from "./pages/SignupProfile";
 
-
 function AppRoutes() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -30,7 +28,11 @@ function AppRoutes() {
   // If user is logged in and profile is incomplete, show SignupProfile directly
   if (
     user &&
-    ( !profile || !profile.city || !profile.favorite_sports || (Array.isArray(profile.favorite_sports) && profile.favorite_sports.length === 0) )
+    (!profile ||
+      !profile.city ||
+      !profile.favorite_sports ||
+      (Array.isArray(profile.favorite_sports) &&
+        profile.favorite_sports.length === 0))
   ) {
     return <SignupProfile />;
   }

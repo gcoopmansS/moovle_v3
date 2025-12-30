@@ -10,8 +10,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const fetchProfile = async (userId) => {
+    setProfileLoading(true);
     try {
       const session = await supabase.auth.getSession();
       const accessToken = session.data.session?.access_token;
@@ -36,15 +38,17 @@ export function AuthProvider({ children }) {
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+    } finally {
+      setProfileLoading(false);
     }
   };
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
       }
       setLoading(false);
     });
@@ -131,6 +135,7 @@ export function AuthProvider({ children }) {
     user,
     profile,
     loading,
+    profileLoading,
     signUp,
     signIn,
     signOut,
