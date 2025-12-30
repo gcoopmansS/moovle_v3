@@ -102,13 +102,6 @@ export default function Agenda() {
     return `${format(d, "EEE")} · ${format(d, "MMM d")}`;
   }
 
-  // Helper: is day in past
-  function isDayPast(dayKey) {
-    const d = new Date(dayKey);
-    d.setHours(23, 59, 59, 999);
-    return d < now;
-  }
-
   return (
     <div className="w-full">
       {/* Header */}
@@ -184,117 +177,178 @@ export default function Agenda() {
                     </div>
                   </div>
                 )}
-                {/* Always render today dot at the top */}
+                {/* Render past days above today, then today, then future days below today */}
                 {(() => {
                   const todayKey = getLocalDayKey(now);
-                  const todayActs =
-                    dayGroups[todayKey]?.sort(
-                      (a, b) => new Date(a.date_time) - new Date(b.date_time)
-                    ) || [];
-                  // Today dot: green and larger
+                  // Split day keys into past, today, future
+                  const pastDayKeys = sortedDayKeys
+                    .filter((dayKey) => dayKey < todayKey)
+                    .sort((a, b) => new Date(b) - new Date(a)); // Descending
+                  const futureDayKeys = sortedDayKeys
+                    .filter((dayKey) => dayKey > todayKey)
+                    .sort((a, b) => new Date(a) - new Date(b)); // Ascending
+
+                  // Render past days (if showPast)
                   return (
-                    <div
-                      key={todayKey}
-                      className="flex flex-row items-start group"
-                    >
-                      {/* Timeline column: dot and line */}
-                      <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
-                        <div className="rounded-full border-4 border-white shadow-md transition-transform bg-green-500 w-6 h-6" />
-                      </div>
-                      {/* Card column */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-semibold text-lg text-slate-700">
-                            Today · {format(now, "MMM d")}
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-4">
-                          {todayActs.length > 0 ? (
-                            todayActs.map((activity) => {
-                              const isHost = activity.creator_id === user.id;
-                              const joined = !isHost;
-                              const isPast = new Date(activity.date_time) < now;
-                              return (
-                                <div key={activity.id}>
-                                  <ActivityCard
-                                    activity={activity}
-                                    agendaMode={true}
-                                    isHost={isHost}
-                                    joined={joined}
-                                    isPast={isPast}
-                                  />
+                    <>
+                      {showPast &&
+                        pastDayKeys.map((dayKey) => {
+                          const acts = dayGroups[dayKey].sort(
+                            (a, b) =>
+                              new Date(a.date_time) - new Date(b.date_time)
+                          );
+                          return (
+                            <div
+                              key={dayKey}
+                              className="flex flex-row items-start group"
+                            >
+                              {/* Timeline column: dot and line */}
+                              <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
+                                <div
+                                  className={`rounded-full border-4 border-white shadow-md transition-transform bg-coral-500 w-5 h-5 opacity-60`}
+                                />
+                              </div>
+                              {/* Card column */}
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-semibold text-lg text-slate-400">
+                                    {getDayLabel(dayKey)}
+                                  </span>
                                 </div>
-                              );
-                            })
-                          ) : (
-                            <div className="p-6 rounded-lg border border-gray-200 bg-white text-slate-500 text-center shadow-sm">
-                              No activities planned today
+                                <div className="flex flex-col gap-4">
+                                  {acts.map((activity) => {
+                                    const isHost =
+                                      activity.creator_id === user.id;
+                                    const joined = !isHost;
+                                    const isPast =
+                                      new Date(activity.date_time) < now;
+                                    return (
+                                      <div
+                                        key={activity.id}
+                                        className="opacity-60"
+                                      >
+                                        <ActivityCard
+                                          activity={activity}
+                                          agendaMode={true}
+                                          isHost={isHost}
+                                          joined={joined}
+                                          isPast={isPast}
+                                        />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                          );
+                        })}
+
+                      {/* Today */}
+                      {(() => {
+                        const todayActs =
+                          dayGroups[todayKey]?.sort(
+                            (a, b) =>
+                              new Date(a.date_time) - new Date(b.date_time)
+                          ) || [];
+                        // Today dot: green and larger
+                        return (
+                          <div
+                            key={todayKey}
+                            className="flex flex-row items-start group"
+                          >
+                            {/* Timeline column: dot and line */}
+                            <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
+                              <div className="rounded-full border-4 border-white shadow-md transition-transform bg-green-500 w-6 h-6" />
+                            </div>
+                            {/* Card column */}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-semibold text-lg text-slate-700">
+                                  Today · {format(now, "MMM d")}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-4">
+                                {todayActs.length > 0 ? (
+                                  todayActs.map((activity) => {
+                                    const isHost =
+                                      activity.creator_id === user.id;
+                                    const joined = !isHost;
+                                    const isPast =
+                                      new Date(activity.date_time) < now;
+                                    return (
+                                      <div key={activity.id}>
+                                        <ActivityCard
+                                          activity={activity}
+                                          agendaMode={true}
+                                          isHost={isHost}
+                                          joined={joined}
+                                          isPast={isPast}
+                                        />
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="p-6 rounded-xl border border-gray-100 bg-white text-slate-500 text-center">
+                                    No activities planned today
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Future days */}
+                      {futureDayKeys.map((dayKey) => {
+                        const acts = dayGroups[dayKey].sort(
+                          (a, b) =>
+                            new Date(a.date_time) - new Date(b.date_time)
+                        );
+                        return (
+                          <div
+                            key={dayKey}
+                            className="flex flex-row items-start group"
+                          >
+                            {/* Timeline column: dot and line */}
+                            <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
+                              <div
+                                className={`rounded-full border-4 border-white shadow-md transition-transform bg-coral-500 w-5 h-5`}
+                              />
+                            </div>
+                            {/* Card column */}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-semibold text-lg text-slate-700">
+                                  {getDayLabel(dayKey)}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-4">
+                                {acts.map((activity) => {
+                                  const isHost =
+                                    activity.creator_id === user.id;
+                                  const joined = !isHost;
+                                  const isPast =
+                                    new Date(activity.date_time) < now;
+                                  return (
+                                    <div key={activity.id}>
+                                      <ActivityCard
+                                        activity={activity}
+                                        agendaMode={true}
+                                        isHost={isHost}
+                                        joined={joined}
+                                        isPast={isPast}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
                   );
                 })()}
-
-                {/* Render all other days except today */}
-                {sortedDayKeys
-                  .filter((dayKey) => dayKey !== getLocalDayKey(now))
-                  .map((dayKey) => {
-                    const acts = dayGroups[dayKey].sort(
-                      (a, b) => new Date(a.date_time) - new Date(b.date_time)
-                    );
-                    const dayPast = isDayPast(dayKey);
-                    return (
-                      <div
-                        key={dayKey}
-                        className="flex flex-row items-start group"
-                      >
-                        {/* Timeline column: dot and line */}
-                        <div className="flex flex-col items-center justify-start w-12 relative z-10 pt-2">
-                          <div
-                            className={`rounded-full border-4 border-white shadow-md transition-transform bg-coral-500 w-5 h-5 ${
-                              dayPast ? "opacity-60" : ""
-                            }
-                            }`}
-                          />
-                        </div>
-                        {/* Card column */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span
-                              className={`font-semibold text-lg ${
-                                dayPast ? "text-slate-400" : "text-slate-700"
-                              }`}
-                            >
-                              {getDayLabel(dayKey)}
-                            </span>
-                          </div>
-                          <div className="flex flex-col gap-4">
-                            {acts.map((activity) => {
-                              const isHost = activity.creator_id === user.id;
-                              const joined = !isHost;
-                              const isPast = new Date(activity.date_time) < now;
-                              return (
-                                <div
-                                  key={activity.id}
-                                  className={dayPast ? "opacity-60" : ""}
-                                >
-                                  <ActivityCard
-                                    activity={activity}
-                                    agendaMode={true}
-                                    isHost={isHost}
-                                    joined={joined}
-                                    isPast={isPast}
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
               </>
               {/* ...end existing code... */}
             </div>
