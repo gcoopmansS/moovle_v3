@@ -24,6 +24,7 @@ export default function Feed() {
   const [selectedSport, setSelectedSport] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activities, setActivities] = useState([]);
+  const [participantCounts, setParticipantCounts] = useState({}); // { [activityId]: count }
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState({}); // { [activityId]: boolean }
   const [joinedIds, setJoinedIds] = useState([]); // [activityId]
@@ -35,6 +36,29 @@ export default function Feed() {
     fetchJoinedActivities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedSport]);
+
+  // Fetch participant counts for all activities
+  useEffect(() => {
+    if (activities.length === 0) return;
+    const fetchCounts = async () => {
+      const { data, error } = await supabase
+        .from("activity_participants")
+        .select("activity_id, count:user_id")
+        .in(
+          "activity_id",
+          activities.map((a) => a.id)
+        );
+      if (!error && data) {
+        // data: [{ activity_id, count }]
+        const counts = {};
+        data.forEach((row) => {
+          counts[row.activity_id] = row.count;
+        });
+        setParticipantCounts(counts);
+      }
+    };
+    fetchCounts();
+  }, [activities]);
 
   // Fetch activities user has joined (for button state)
   const fetchJoinedActivities = async () => {
@@ -213,6 +237,11 @@ export default function Feed() {
           {filteredActivities.map((activity) => {
             const isHost = activity.creator_id === user.id;
             const joined = joinedIds.includes(activity.id);
+            // Organizer always counts as a participant
+            let currentCount = participantCounts[activity.id] || 0;
+            if (activity.creator_id) currentCount += 1;
+            const capacity =
+              activity.max_participants || activity.capacity || "∞";
             return (
               <ActivityCard
                 key={activity.id}
@@ -222,6 +251,8 @@ export default function Feed() {
                 loading={joining[activity.id]}
                 onJoin={() => handleJoin(activity)}
                 onLeave={() => handleLeave(activity)}
+                currentCount={currentCount}
+                capacity={capacity}
               />
             );
           })}

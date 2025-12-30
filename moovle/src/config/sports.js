@@ -18,6 +18,7 @@ export const sports = [
     supportsDistance: true,
     defaultDistance: 5,
     defaultDuration: 30,
+    capacityOptions: Array.from({ length: 19 }, (_, i) => i + 2), // 2-20
   },
   {
     id: "cycling",
@@ -26,6 +27,7 @@ export const sports = [
     supportsDistance: true,
     defaultDistance: 20,
     defaultDuration: 60,
+    capacityOptions: Array.from({ length: 19 }, (_, i) => i + 2), // 2-20
   },
   {
     id: "walking",
@@ -34,6 +36,7 @@ export const sports = [
     supportsDistance: true,
     defaultDistance: 5,
     defaultDuration: 60,
+    capacityOptions: Array.from({ length: 19 }, (_, i) => i + 2), // 2-20
   },
   {
     id: "tennis",
@@ -41,6 +44,7 @@ export const sports = [
     icon: "🎾",
     supportsDistance: false,
     defaultDuration: 60,
+    capacityOptions: [2, 4],
   },
   {
     id: "padel",
@@ -48,6 +52,7 @@ export const sports = [
     icon: "🎾",
     supportsDistance: false,
     defaultDuration: 60,
+    capacityOptions: [2, 4],
   },
 ];
 

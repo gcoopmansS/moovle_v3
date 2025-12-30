@@ -23,6 +23,7 @@ export default function CreateActivity() {
   const [durationType, setDurationType] = useState("duration"); // "duration" or "distance"
   const [duration, setDuration] = useState(60); // Duration in minutes
   const [distance, setDistance] = useState("");
+  const [capacity, setCapacity] = useState(2); // Default to 2
   const [location, setLocation] = useState("");
   const [locationCoords, setLocationCoords] = useState(null); // { lat, lng }
   const [locationDetails, setLocationDetails] = useState("");
@@ -39,6 +40,9 @@ export default function CreateActivity() {
       setDuration(currentSport.defaultDuration);
       if (currentSport.supportsDistance) {
         setDistance(String(currentSport.defaultDistance));
+      }
+      if (currentSport.capacityOptions) {
+        setCapacity(currentSport.capacityOptions[0]);
       }
     }
   }, [selectedSport, currentSport]);
@@ -66,6 +70,7 @@ export default function CreateActivity() {
           supportsDistance && durationType === "distance" && distance
             ? parseInt(distance, 10)
             : null,
+        max_participants: capacity,
         location,
         location_lat: locationCoords?.lat || null,
         location_lng: locationCoords?.lng || null,
@@ -254,6 +259,24 @@ export default function CreateActivity() {
             onChange={(e) => setLocationDetails(e.target.value)}
             className="w-full mt-3 px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
           />
+        </div>
+
+        {/* Capacity */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Maximum participants (including you)
+          </label>
+          <select
+            value={capacity}
+            onChange={(e) => setCapacity(Number(e.target.value))}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+          >
+            {currentSport?.capacityOptions?.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Visibility */}
