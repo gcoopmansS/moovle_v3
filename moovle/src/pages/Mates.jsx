@@ -471,6 +471,7 @@ export default function Mates() {
 
       if (error) throw error;
       await fetchMatesData();
+      await fetchMateSuggestions();
     } catch (error) {
       console.error("Error removing mate:", error);
     } finally {
@@ -777,7 +778,7 @@ export default function Mates() {
                   {filteredMates.map((connection) => (
                     <div
                       key={connection.id}
-                      className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:shadow-sm transition-shadow"
+                      className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:shadow-sm transition-shadow cursor-pointer"
                     >
                       <div className="w-12 h-12 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">
                         {getInitial(connection.mate.full_name)}
@@ -795,7 +796,7 @@ export default function Mates() {
                       <button
                         onClick={() => removeMate(connection.id)}
                         disabled={actionLoading === connection.id}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         title="Remove mate"
                       >
                         {actionLoading === connection.id ? (

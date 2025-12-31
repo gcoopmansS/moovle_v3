@@ -135,7 +135,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-coral-500 text-white py-3 rounded-xl font-semibold hover:bg-coral-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full bg-coral-500 text-white py-3 rounded-xl font-semibold hover:bg-coral-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 "Loading..."
@@ -155,7 +155,7 @@ export default function Login() {
                 setError("");
                 setMessage("");
               }}
-              className="text-coral-500 hover:underline text-sm"
+              className="text-coral-500 hover:underline text-sm cursor-pointer"
             >
               {isSignUp
                 ? "Already have an account? Sign in"

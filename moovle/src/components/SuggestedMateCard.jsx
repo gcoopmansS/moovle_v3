@@ -9,7 +9,7 @@ export default function SuggestedMateCard({
   mutualCount,
 }) {
   return (
-    <div className="flex flex-col items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm max-w-[150px] w-full h-full min-h-[200px]">
+    <div className="flex flex-col items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow max-w-[150px] w-full h-full min-h-[200px] cursor-pointer">
       <div className="flex flex-col items-center w-full">
         <div className="w-10 h-10 bg-coral-500 rounded-full flex items-center justify-center text-white font-bold text-lg mb-2 shadow">
           {profile.avatar_url ? (
@@ -57,7 +57,7 @@ export default function SuggestedMateCard({
           <button
             onClick={onAdd}
             disabled={loading}
-            className="flex items-center justify-center gap-1 w-full px-2 py-1 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors disabled:opacity-50 font-medium text-xs"
+            className="flex items-center justify-center gap-1 w-full px-2 py-1 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors disabled:opacity-50 font-medium text-xs cursor-pointer"
           >
             {loading ? (
               <Loader2 size={12} className="animate-spin" />
