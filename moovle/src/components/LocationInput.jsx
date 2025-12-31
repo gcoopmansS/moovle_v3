@@ -96,7 +96,7 @@ export default function LocationInput({
 
       // If type is 'city', add types=place to Mapbox API (place = city/town/village)
       if (type === "city") {
-        url += `&types=place`;
+        url += `&types=place,locality`;
       }
 
       const response = await fetch(url);
@@ -109,8 +109,10 @@ export default function LocationInput({
         if (type === "city") {
           filteredSuggestions = filteredSuggestions.filter(
             (s) =>
-              (s.types && s.types.includes("place")) ||
-              s.feature_type === "place"
+              (s.types &&
+                (s.types.includes("place") || s.types.includes("locality"))) ||
+              s.feature_type === "place" ||
+              s.feature_type === "locality"
           );
         }
         const suggestionsWithDetails = await Promise.all(
