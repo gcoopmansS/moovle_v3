@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -49,7 +49,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Feed />} />
+        <Route index element={<Navigate to="/feed" replace />} />
         <Route path="feed" element={<Feed />} />
         <Route path="agenda" element={<Agenda />} />
         <Route path="mates" element={<Mates />} />
