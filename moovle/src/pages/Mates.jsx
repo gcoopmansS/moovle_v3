@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import SuggestedMatesCarousel from "../components/SuggestedMatesCarousel";
+import { buildMateSuggestions } from "../lib/mateSuggestions";
 import {
   Search,
   UserPlus,
@@ -11,15 +13,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
-
-function uniqueById(arr) {
-  const seen = new Set();
-  return arr.filter((u) => {
-    if (seen.has(u.id)) return false;
-    seen.add(u.id);
-    return true;
-  });
-}
 
 export default function Mates() {
   const { user } = useAuth();
@@ -116,136 +109,199 @@ export default function Mates() {
     }
   };
 
-  // Haversine formula for distance in km
-  function calculateDistance(lat1, lng1, lat2, lng2) {
-    if (lat1 == null || lng1 == null || lat2 == null || lng2 == null)
-      return null;
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLng = ((lng2 - lng1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLng / 2) *
-        Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  // Format distance for display
-  function formatDistance(km) {
-    if (km == null) return null;
-    if (km < 1) {
-      return `${Math.round(km * 1000)} m`;
-    } else if (km < 10) {
-      return `${km.toFixed(1)} km`;
-    } else {
-      return `${Math.round(km)} km`;
-    }
-  }
-
-  const fetchSuggestedMates = async () => {
+  // Advanced mate suggestion fetching and scoring
+  const fetchMateSuggestions = async () => {
     setLoadingSuggestions(true);
     try {
-      const { data: myProfile, error: myProfileError } = await supabase
+      // 1. Load current user profile (me)
+      const { data: me, error: meErr } = await supabase
         .from("profiles")
-        .select("id, city, city_lat, city_lng, favorite_sports")
+        .select("*")
         .eq("id", user.id)
         .single();
-      if (myProfileError) throw myProfileError;
+      if (meErr) throw meErr;
 
-      const mateIds = mates.map((m) => m.mate.id);
+      // 2. Load all candidate profiles (same country, limit 200, exclude self)
+      let countryFilter = me.country ? { country: me.country } : {};
+      let { data: candidates, error: candErr } = await supabase
+        .from("profiles")
+        .select(
+          "id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports, country"
+        )
+        .neq("id", user.id)
+        .match(countryFilter)
+        .limit(200);
+      if (candErr) throw candErr;
 
-      // 1. By favorite_sports (with location)
-      let sportMatches = [];
-      if (myProfile.favorite_sports && myProfile.favorite_sports.length > 0) {
-        const { data } = await supabase
-          .from("profiles")
-          .select(
-            "id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports"
-          )
-          .neq("id", user.id)
-          .overlaps("favorite_sports", myProfile.favorite_sports)
-          .limit(30);
-        sportMatches = data || [];
-      }
+      // 3. Load all mate edges (to filter out accepted, pending, declined, both directions)
+      const { data: mateEdges, error: mateEdgesErr } = await supabase
+        .from("mates")
+        .select("id, requester_id, receiver_id, status")
+        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
+      if (mateEdgesErr) throw mateEdgesErr;
 
-      // 2. Mates-of-mates (with location)
-      let matesOfMates = [];
-      if (mateIds.length > 0) {
-        const { data: matesMates } = await supabase
-          .from("mates")
-          .select(
-            `id, requester_id, receiver_id, status,
-          requester:profiles!requester_id(id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports),
-          receiver:profiles!receiver_id(id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports)`
-          )
-          .eq("status", "accepted")
-          .or(
-            mateIds
-              .map((id) => `requester_id.eq.${id},receiver_id.eq.${id}`)
-              .join(",")
-          );
-        if (matesMates) {
-          matesOfMates = matesMates
-            .map((m) => [m.requester, m.receiver])
-            .flat()
-            .filter((u) => u.id !== user.id && !mateIds.includes(u.id));
+      // 4. Filter out candidates who are already mates, pending, declined, or self
+      const excludeIds = new Set([user.id]);
+      mateEdges.forEach((edge) => {
+        if (["accepted", "pending", "declined"].includes(edge.status)) {
+          excludeIds.add(edge.requester_id);
+          excludeIds.add(edge.receiver_id);
+        }
+      });
+      const filteredCandidates = candidates.filter(
+        (c) => !excludeIds.has(c.id)
+      );
+
+      // 5. User’s recent sports (favorite_sports or recent activities)
+      let myRecentSports =
+        Array.isArray(me.favorite_sports) && me.favorite_sports.length > 0
+          ? [...me.favorite_sports]
+          : [];
+      if (myRecentSports.length === 0) {
+        // fallback: last 30 days activities
+        const since = new Date(
+          Date.now() - 30 * 24 * 60 * 60 * 1000
+        ).toISOString();
+        const { data: myActs } = await supabase
+          .from("activity_participants")
+          .select("activity_id, activities(sport)")
+          .eq("user_id", user.id)
+          .gte("joined_at", since);
+        if (myActs) {
+          myRecentSports = [
+            ...new Set(myActs.map((a) => a.activities?.sport).filter(Boolean)),
+          ];
         }
       }
 
-      // 3. By city (with location)
-      let cityMatches = [];
-      if (myProfile.city) {
-        const { data } = await supabase
-          .from("profiles")
-          .select(
-            "id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports"
+      // 6. Mutual mates: fetch accepted mates of my accepted mates
+      const myMateIds = mateEdges
+        .filter((e) => e.status === "accepted")
+        .map((e) =>
+          e.requester_id === user.id ? e.receiver_id : e.requester_id
+        );
+      let mutualMap = {};
+      if (myMateIds.length > 0) {
+        const { data: matesOfMates } = await supabase
+          .from("mates")
+          .select("requester_id, receiver_id, status")
+          .or(
+            myMateIds
+              .map((id) => `requester_id.eq.${id},receiver_id.eq.${id}`)
+              .join(",")
           )
-          .neq("id", user.id)
-          .eq("city", myProfile.city)
-          .limit(30);
-        cityMatches = data || [];
+          .eq("status", "accepted");
+        if (matesOfMates) {
+          matesOfMates.forEach((edge) => {
+            const otherId = myMateIds.includes(edge.requester_id)
+              ? edge.receiver_id
+              : edge.requester_id;
+            if (!excludeIds.has(otherId)) {
+              mutualMap[otherId] = (mutualMap[otherId] || 0) + 1;
+            }
+          });
+        }
       }
 
-      // Combine and filter
-      const allSuggestions = uniqueById([
-        ...sportMatches,
-        ...matesOfMates,
-        ...cityMatches,
-      ]).filter(
-        (u) =>
-          u.id !== user.id &&
-          !mateIds.includes(u.id) &&
-          !incomingRequests.some((r) => r.requester.id === u.id) &&
-          !outgoingRequests.some((r) => r.receiver.id === u.id)
-      );
-
-      // Calculate distance for each suggestion
-      const suggestionsWithDistance = allSuggestions.map((u) => {
-        const distance =
-          myProfile.city_lat && myProfile.city_lng && u.city_lat && u.city_lng
-            ? calculateDistance(
-                myProfile.city_lat,
-                myProfile.city_lng,
-                u.city_lat,
-                u.city_lng
+      // 7. Candidate activity stats (recent sports, venues, last active)
+      // Batch fetch: get recent activities for all candidates in last 90 days
+      const candidateIds = filteredCandidates.map((c) => c.id);
+      let candidateStats = {};
+      if (candidateIds.length > 0) {
+        const since = new Date(
+          Date.now() - 90 * 24 * 60 * 60 * 1000
+        ).toISOString();
+        // Fetch activities created by candidates
+        const { data: actsCreated } = await supabase
+          .from("activities")
+          .select(
+            "id, creator_id, sport, date_time, location_lat, location_lng"
+          )
+          .in("creator_id", candidateIds)
+          .gte("date_time", since);
+        // Fetch activities joined by candidates
+        const { data: actsJoined } = await supabase
+          .from("activity_participants")
+          .select(
+            "user_id, activity_id, status, activities(sport, date_time, location_lat, location_lng)"
+          )
+          .in("user_id", candidateIds)
+          .eq("status", "joined")
+          .gte("joined_at", since);
+        // Build stats per candidate
+        candidateIds.forEach((cid) => {
+          const created = (actsCreated || []).filter(
+            (a) => a.creator_id === cid
+          );
+          const joined = (actsJoined || []).filter((a) => a.user_id === cid);
+          const recentSports = [
+            ...new Set(
+              [
+                ...created.map((a) => a.sport),
+                ...joined.map((a) => a.activities?.sport),
+              ].filter(Boolean)
+            ),
+          ];
+          // Venues near me
+          let venuesNearby = [];
+          if (me.city_lat && me.city_lng) {
+            const allActs = [
+              ...created.map((a) => ({
+                lat: a.location_lat,
+                lng: a.location_lng,
+              })),
+              ...joined.map((a) => ({
+                lat: a.activities?.location_lat,
+                lng: a.activities?.location_lng,
+              })),
+            ];
+            venuesNearby = allActs
+              .filter(
+                (v) =>
+                  v.lat &&
+                  v.lng &&
+                  Math.abs(v.lat - me.city_lat) < 1 &&
+                  Math.abs(v.lng - me.city_lng) < 1 // quick filter
               )
-            : null;
-        return { ...u, distance };
-      });
+              .filter((v) => {
+                // precise filter
+                const d = buildMateSuggestions.haversineKm
+                  ? buildMateSuggestions.haversineKm(
+                      me.city_lat,
+                      me.city_lng,
+                      v.lat,
+                      v.lng
+                    )
+                  : 0;
+                return d <= 15;
+              });
+          }
+          // Last active
+          let lastActive = null;
+          const allDates = [
+            ...created.map((a) => a.date_time),
+            ...joined.map((a) => a.activities?.date_time),
+          ]
+            .filter(Boolean)
+            .sort()
+            .reverse();
+          if (allDates.length > 0) lastActive = allDates[0];
+          candidateStats[cid] = { recentSports, venuesNearby, lastActive };
+        });
+      }
 
-      // Sort by distance (closest first, nulls last)
-      suggestionsWithDistance.sort((a, b) => {
-        if (a.distance == null && b.distance == null) return 0;
-        if (a.distance == null) return 1;
-        if (b.distance == null) return -1;
-        return a.distance - b.distance;
+      // 8. Build suggestions
+      const suggestions = buildMateSuggestions({
+        me,
+        candidates: filteredCandidates,
+        myMates: [],
+        myRecentSports,
+        mutualMap,
+        candidateStats,
       });
-
-      setSuggestedMates(suggestionsWithDistance.slice(0, 10));
-    } catch {
+      setSuggestedMates(suggestions);
+      // eslint-disable-next-line no-unused-vars
+    } catch (e) {
       setSuggestedMates([]);
     } finally {
       setLoadingSuggestions(false);
@@ -255,7 +311,7 @@ export default function Mates() {
   useEffect(() => {
     if (user) {
       fetchMatesData();
-      fetchSuggestedMates;
+      fetchMateSuggestions();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -480,62 +536,24 @@ export default function Mates() {
       {activeTab === "discover" && (
         <div className="mb-8">
           <h3 className="text-base font-semibold text-slate-700 mb-3">
-            Suggested Mates
+            Suggested mates
           </h3>
-          {loadingSuggestions ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="animate-spin text-coral-500" size={24} />
-            </div>
-          ) : suggestedMates.length > 0 ? (
-            <div className="space-y-2">
-              {suggestedMates.map((person) => (
-                <div
-                  key={person.id}
-                  className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100"
-                >
-                  <div className="w-12 h-12 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">
-                    {getInitial(person.full_name)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-800 truncate">
-                      {person.full_name || "Unknown"}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {person.city && (
-                        <p className="text-sm text-slate-500">{person.city}</p>
-                      )}
-                      {person.distance != null && (
-                        <span className="text-xs text-coral-500 font-medium ml-2">
-                          {formatDistance(person.distance)} away
-                        </span>
-                      )}
-                    </div>
-                    {person.favorite_sports &&
-                      person.favorite_sports.length > 0 && (
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {person.favorite_sports.join(", ")}
-                        </p>
-                      )}
-                  </div>
-                  <button
-                    onClick={() => sendMateRequest(person.id)}
-                    disabled={actionLoading === person.id}
-                    className="flex items-center gap-2 px-4 py-2 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    {actionLoading === person.id ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <UserPlus size={16} />
-                    )}
-                    Add
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-slate-400 text-sm">
-              No suggestions yet. Try adding your city and favorite sports to
-              your profile!
+          <SuggestedMatesCarousel
+            items={suggestedMates.map((sugg) => ({
+              ...sugg,
+              requested:
+                actionLoading === null &&
+                outgoingRequests.some((r) => r.receiver.id === sugg.profile.id),
+              loading: actionLoading === sugg.profile.id,
+            }))}
+            onAddMate={sendMateRequest}
+          />
+          {!loadingSuggestions && suggestedMates.length === 0 && (
+            <div className="text-slate-400 text-sm mt-6 text-center">
+              No suggestions yet.
+              <br />
+              Try adding your city and favorite sports to your profile, or
+              invite friends to Moovle!
             </div>
           )}
         </div>

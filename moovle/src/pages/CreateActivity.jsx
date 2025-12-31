@@ -266,7 +266,8 @@ export default function CreateActivity() {
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Maximum participants (including you)
           </label>
-          {currentSport?.capacityOptions && currentSport.capacityOptions.length <= 4 ? (
+          {currentSport?.capacityOptions &&
+          currentSport.capacityOptions.length <= 4 ? (
             <select
               value={capacity}
               onChange={(e) => setCapacity(Number(e.target.value))}
@@ -281,10 +282,18 @@ export default function CreateActivity() {
           ) : (
             <input
               type="number"
-              min={currentSport?.capacityOptions ? Math.min(...currentSport.capacityOptions) : 2}
-              max={currentSport?.capacityOptions ? Math.max(...currentSport.capacityOptions) : 20}
+              min={
+                currentSport?.capacityOptions
+                  ? Math.min(...currentSport.capacityOptions)
+                  : 2
+              }
+              max={
+                currentSport?.capacityOptions
+                  ? Math.max(...currentSport.capacityOptions)
+                  : 20
+              }
               value={capacity}
-              onChange={e => setCapacity(Number(e.target.value))}
+              onChange={(e) => setCapacity(Number(e.target.value))}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
             />
           )}
