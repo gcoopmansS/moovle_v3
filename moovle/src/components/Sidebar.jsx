@@ -73,19 +73,7 @@ export default function Sidebar() {
           {/* Mates icon here */}
           <span className="font-medium">Mates</span>
         </NavLink>
-        <NavLink
-          to="/notifications"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-              isActive
-                ? "bg-coral-500 text-white"
-                : "text-slate-600 hover:bg-gray-50"
-            }`
-          }
-        >
-          {/* Notifications icon here */}
-          <span className="font-medium">Notifications</span>
-        </NavLink>
+        {/* Notifications removed from sidebar */}
       </nav>
 
       {/* New Activity Button */}

@@ -6,7 +6,7 @@ import Login from "./pages/Login";
 import Feed from "./pages/Feed";
 import Agenda from "./pages/Agenda";
 import Mates from "./pages/Mates";
-import Notifications from "./pages/Notifications";
+
 import CreateActivity from "./pages/CreateActivity";
 import Profile from "./pages/Profile";
 import SignupProfile from "./pages/SignupProfile";
@@ -53,7 +53,7 @@ function AppRoutes() {
         <Route path="feed" element={<Feed />} />
         <Route path="agenda" element={<Agenda />} />
         <Route path="mates" element={<Mates />} />
-        <Route path="notifications" element={<Notifications />} />
+
         <Route path="create-activity" element={<CreateActivity />} />
         <Route path="profile" element={<Profile />} />
       </Route>
