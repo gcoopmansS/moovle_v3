@@ -61,13 +61,13 @@ export function buildMateSuggestions({
         metrics.distanceKm = distKm;
         if (distKm <= 5) {
           locScore = 40;
-          reasons.push("Near you (<5km)");
+          reasons.push("Near you");
         } else if (distKm <= 15) {
           locScore = 30;
-          reasons.push("Nearby (<15km)");
+          reasons.push("Nearby");
         } else if (distKm <= 50) {
           locScore = 15;
-          reasons.push("Same region (<50km)");
+          reasons.push("Same region");
         }
       } else if (
         myCity &&

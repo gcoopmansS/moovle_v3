@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Modal from "../components/Modal";
 import SuggestedMatesCarousel from "../components/SuggestedMatesCarousel";
 import { buildMateSuggestions } from "../lib/mateSuggestions";
 import {
@@ -27,6 +28,7 @@ export default function Mates() {
   const [actionLoading, setActionLoading] = useState(null);
   const [suggestedMates, setSuggestedMates] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(null);
 
   const tabs = [
     { id: "discover", label: "Discover" },
@@ -794,7 +796,7 @@ export default function Mates() {
                         )}
                       </div>
                       <button
-                        onClick={() => removeMate(connection.id)}
+                        onClick={() => setConfirmRemove(connection)}
                         disabled={actionLoading === connection.id}
                         className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         title="Remove mate"
@@ -805,6 +807,24 @@ export default function Mates() {
                           <UserMinus size={18} />
                         )}
                       </button>
+                      {/* Remove Mate Modal */}
+                      <Modal
+                        open={!!confirmRemove}
+                        onClose={() => setConfirmRemove(null)}
+                        title="Remove mate?"
+                        confirmLabel="Remove"
+                        loading={actionLoading === confirmRemove?.id}
+                        onConfirm={() => {
+                          if (confirmRemove) removeMate(confirmRemove.id);
+                          setConfirmRemove(null);
+                        }}
+                      >
+                        Are you sure you want to remove{" "}
+                        <b>{confirmRemove?.mate?.full_name || "this mate"}</b>{" "}
+                        from your mates?
+                        <br />
+                        This action cannot be undone.
+                      </Modal>
                     </div>
                   ))}
                 </div>
