@@ -46,11 +46,15 @@ export default function Agenda() {
   const fetchActivities = async () => {
     setLoading(true);
     try {
+      // Fetch activities organized by the user
       const { data: organized } = await supabase
         .from("activities")
-        .select(`*, organizer:profiles!creator_id(id, full_name, avatar_url)`)
+        .select(
+          `*, organizer:profiles!creator_id(id, full_name, avatar_url), participants:activity_participants(user_id, profiles(id, full_name, avatar_url))`
+        )
         .eq("creator_id", user.id);
 
+      // Fetch activities joined by the user
       const { data: joinedLinks } = await supabase
         .from("activity_participants")
         .select("activity_id")
@@ -62,15 +66,41 @@ export default function Agenda() {
       if (joinedIds.length > 0) {
         const { data: joinedActs } = await supabase
           .from("activities")
-          .select(`*, organizer:profiles!creator_id(id, full_name, avatar_url)`)
+          .select(
+            `*, organizer:profiles!creator_id(id, full_name, avatar_url), participants:activity_participants(user_id, profiles(id, full_name, avatar_url))`
+          )
           .in("id", joinedIds);
         joined = joinedActs || [];
       }
 
+      // Merge and deduplicate activities
       const all = [...(organized || []), ...joined].filter(
         (a, i, arr) => arr.findIndex((b) => b.id === a.id) === i
       );
-      setActivities(all);
+
+      // Map participants to flat array of {id, full_name, avatar_url}, always include organizer
+      const activitiesWithParticipants = (all || []).map((activity) => {
+        let participants = [];
+        if (Array.isArray(activity.participants)) {
+          participants = activity.participants
+            .map((p) => p.profiles || p)
+            .filter((p) => p && p.full_name && p.full_name.trim().length > 0);
+        }
+        if (
+          activity.organizer &&
+          typeof activity.organizer.full_name === "string" &&
+          activity.organizer.full_name.trim().length > 0
+        ) {
+          const alreadyIncluded = participants.some(
+            (p) => p.id === activity.organizer.id
+          );
+          if (!alreadyIncluded) {
+            participants = [activity.organizer, ...participants];
+          }
+        }
+        return { ...activity, participants };
+      });
+      setActivities(activitiesWithParticipants);
     } catch {
       setActivities([]);
     } finally {
