@@ -9,6 +9,8 @@ export default function Agenda() {
   const [showPast, setShowPast] = useState(false);
   const { user } = useAuth();
   const [activities, setActivities] = useState([]);
+  const [joinedIds, setJoinedIds] = useState([]); // [activityId]
+  const [joining, setJoining] = useState({}); // { [activityId]: boolean }
   const [participantCounts, setParticipantCounts] = useState({}); // { [activityId]: count }
   const [loading, setLoading] = useState(true);
 
@@ -24,15 +26,16 @@ export default function Agenda() {
     const fetchCounts = async () => {
       const { data, error } = await supabase
         .from("activity_participants")
-        .select("activity_id, count:user_id")
+        .select("activity_id, user_id")
         .in(
           "activity_id",
           activities.map((a) => a.id)
         );
       if (!error && data) {
+        // Aggregate counts in JS
         const counts = {};
         data.forEach((row) => {
-          counts[row.activity_id] = row.count;
+          counts[row.activity_id] = (counts[row.activity_id] || 0) + 1;
         });
         setParticipantCounts(counts);
       }
@@ -54,6 +57,7 @@ export default function Agenda() {
         .eq("user_id", user.id);
 
       const joinedIds = (joinedLinks || []).map((a) => a.activity_id);
+      setJoinedIds(joinedIds);
       let joined = [];
       if (joinedIds.length > 0) {
         const { data: joinedActs } = await supabase
@@ -72,6 +76,41 @@ export default function Agenda() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Optimistic leave handler (moved outside fetchActivities)
+  const handleLeave = async (activity) => {
+    if (!user) return;
+    setJoining((j) => ({ ...j, [activity.id]: true }));
+    // Optimistically update local state
+    setActivities((prev) =>
+      prev.map((a) =>
+        a.id === activity.id
+          ? {
+              ...a,
+              participants: a.participants
+                ? a.participants.filter((p) => p.id !== user.id)
+                : [],
+            }
+          : a
+      )
+    );
+    setParticipantCounts((prev) => ({
+      ...prev,
+      [activity.id]: Math.max((prev[activity.id] || 1) - 1, 0),
+    }));
+    setJoinedIds((ids) => ids.filter((id) => id !== activity.id));
+    // Make the API call
+    const { error } = await supabase
+      .from("activity_participants")
+      .delete()
+      .eq("activity_id", activity.id)
+      .eq("user_id", user.id);
+    if (error) {
+      // Rollback on error
+      await fetchActivities();
+    }
+    setJoining((j) => ({ ...j, [activity.id]: false }));
   };
 
   const now = new Date();
@@ -219,7 +258,7 @@ export default function Agenda() {
                     <div className="flex flex-col gap-4">
                       {acts.map((activity) => {
                         const isHost = activity.creator_id === user.id;
-                        const joined = !isHost;
+                        const joined = joinedIds.includes(activity.id);
                         const isPast = new Date(activity.date_time) < now;
                         return (
                           <div key={activity.id} className="opacity-60">
@@ -229,6 +268,8 @@ export default function Agenda() {
                               isHost={isHost}
                               joined={joined}
                               isPast={isPast}
+                              loading={joining[activity.id]}
+                              onLeave={() => handleLeave(activity)}
                               currentCount={
                                 (participantCounts[activity.id] || 0) + 1
                               }
@@ -267,7 +308,7 @@ export default function Agenda() {
                     {todayActs.length > 0 ? (
                       todayActs.map((activity) => {
                         const isHost = activity.creator_id === user.id;
-                        const joined = !isHost;
+                        const joined = joinedIds.includes(activity.id);
                         const isPast = new Date(activity.date_time) < now;
                         return (
                           <div key={activity.id}>
@@ -277,6 +318,8 @@ export default function Agenda() {
                               isHost={isHost}
                               joined={joined}
                               isPast={isPast}
+                              loading={joining[activity.id]}
+                              onLeave={() => handleLeave(activity)}
                               currentCount={
                                 (participantCounts[activity.id] || 0) + 1
                               }
@@ -318,7 +361,7 @@ export default function Agenda() {
                   <div className="flex flex-col gap-4">
                     {acts.map((activity) => {
                       const isHost = activity.creator_id === user.id;
-                      const joined = !isHost;
+                      const joined = joinedIds.includes(activity.id);
                       const isPast = new Date(activity.date_time) < now;
                       return (
                         <div key={activity.id}>
@@ -328,6 +371,8 @@ export default function Agenda() {
                             isHost={isHost}
                             joined={joined}
                             isPast={isPast}
+                            loading={joining[activity.id]}
+                            onLeave={() => handleLeave(activity)}
                             currentCount={
                               (participantCounts[activity.id] || 0) + 1
                             }
