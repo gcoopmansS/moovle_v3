@@ -75,39 +75,79 @@ export default function Feed() {
   const handleJoin = async (activity) => {
     if (!user) return;
     setJoining((j) => ({ ...j, [activity.id]: true }));
-    // Add participant
+
+    // Optimistically update local state
+    setActivities((prev) =>
+      prev.map((a) =>
+        a.id === activity.id
+          ? {
+              ...a,
+              participants: [
+                ...a.participants,
+                {
+                  id: user.id,
+                  full_name: profile.full_name,
+                  avatar_url: profile.avatar_url,
+                },
+              ],
+            }
+          : a
+      )
+    );
+    setParticipantCounts((prev) => ({
+      ...prev,
+      [activity.id]: (prev[activity.id] || 0) + 1,
+    }));
+    setJoinedIds((ids) => [...ids, activity.id]);
+
+    // Make the API call
     const { error } = await supabase
       .from("activity_participants")
       .insert({ activity_id: activity.id, user_id: user.id });
-    if (!error) {
-      setJoinedIds((ids) => [...ids, activity.id]);
-      // Send notification to organizer
-      await supabase.from("notifications").insert({
-        user_id: activity.creator_id,
-        type: "join",
-        activity_id: activity.id,
-        sender_id: user.id,
-        created_at: new Date().toISOString(),
-        read: false,
-      });
-      // Refetch activities to update participants avatars
+
+    if (error) {
+      // Rollback on error
+      // (You can show a toast or revert state here)
       await fetchActivities();
     }
+
     setJoining((j) => ({ ...j, [activity.id]: false }));
   };
   // Leave activity handler (optional, for completeness)
   const handleLeave = async (activity) => {
     if (!user) return;
     setJoining((j) => ({ ...j, [activity.id]: true }));
-    await supabase
+
+    // Optimistically update local state
+    setActivities((prev) =>
+      prev.map((a) =>
+        a.id === activity.id
+          ? {
+              ...a,
+              participants: a.participants.filter((p) => p.id !== user.id),
+            }
+          : a
+      )
+    );
+    setParticipantCounts((prev) => ({
+      ...prev,
+      [activity.id]: Math.max((prev[activity.id] || 1) - 1, 0),
+    }));
+    setJoinedIds((ids) => ids.filter((id) => id !== activity.id));
+
+    // Make the API call
+    const { error } = await supabase
       .from("activity_participants")
       .delete()
       .eq("activity_id", activity.id)
       .eq("user_id", user.id);
-    setJoinedIds((ids) => ids.filter((id) => id !== activity.id));
+
+    if (error) {
+      // Rollback on error
+      await fetchActivities();
+    }
+
     setJoining((j) => ({ ...j, [activity.id]: false }));
-    // Refetch activities to update participants avatars
-    await fetchActivities();
   };
 
   const fetchActivities = async () => {
