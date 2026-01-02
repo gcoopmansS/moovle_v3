@@ -129,11 +129,48 @@ export default function ActivityCard({
             <span className="text-sm text-slate-600">
               {activity.organizer?.full_name || "Unknown"}
             </span>
-            <span className="ml-auto flex items-center gap-1 text-sm text-slate-400">
-              <Users size={14} />
-              {currentCount || 0}/{capacity || "∞"}
+            <div className="ml-auto flex items-center gap-2">
+              <span className="flex items-center gap-1 text-sm text-slate-400">
+                <Users size={14} />
+                {currentCount || 0}/{capacity || "∞"}
+              </span>
+              {/* Participant Avatars */}
+              {Array.isArray(activity.participants) &&
+                activity.participants.length > 0 && (
+                  <div className="flex -space-x-2">
+                    {activity.participants.slice(0, 4).map((p) => {
+                      const hasName =
+                        typeof p.full_name === "string" &&
+                        p.full_name.trim().length > 0;
+                      return (
+                        <div
+                          key={p.id}
+                          className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600 overflow-hidden shadow"
+                          title={hasName ? p.full_name : ""}
+                        >
+                          {p.avatar_url ? (
+                            <img
+                              src={p.avatar_url}
+                              alt={hasName ? p.full_name : "Participant"}
+                              className="w-full h-full object-cover rounded-full"
+                            />
+                          ) : hasName ? (
+                            p.full_name.charAt(0)
+                          ) : (
+                            "?"
+                          )}
+                        </div>
+                      );
+                    })}
+                    {activity.participants.length > 4 && (
+                      <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center text-xs font-semibold text-slate-600 shadow">
+                        +{activity.participants.length - 4}
+                      </div>
+                    )}
+                  </div>
+                )}
               {action}
-            </span>
+            </div>
           </div>
 
           {children}

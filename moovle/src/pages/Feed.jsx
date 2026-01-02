@@ -43,7 +43,7 @@ export default function Feed() {
     const fetchCounts = async () => {
       const { data, error } = await supabase
         .from("activity_participants")
-        .select("activity_id, count:user_id")
+        .select("activity_id")
         .in(
           "activity_id",
           activities.map((a) => a.id)
@@ -52,7 +52,7 @@ export default function Feed() {
         // data: [{ activity_id, count }]
         const counts = {};
         data.forEach((row) => {
-          counts[row.activity_id] = row.count;
+          counts[row.activity_id] = (counts[row.activity_id] || 0) + 1;
         });
         setParticipantCounts(counts);
       }
@@ -90,6 +90,8 @@ export default function Feed() {
         created_at: new Date().toISOString(),
         read: false,
       });
+      // Refetch activities to update participants avatars
+      await fetchActivities();
     }
     setJoining((j) => ({ ...j, [activity.id]: false }));
   };
@@ -104,6 +106,8 @@ export default function Feed() {
       .eq("user_id", user.id);
     setJoinedIds((ids) => ids.filter((id) => id !== activity.id));
     setJoining((j) => ({ ...j, [activity.id]: false }));
+    // Refetch activities to update participants avatars
+    await fetchActivities();
   };
 
   const fetchActivities = async () => {
@@ -114,7 +118,8 @@ export default function Feed() {
         .select(
           `
           *,
-          organizer:profiles!creator_id(id, full_name, avatar_url)
+          organizer:profiles!creator_id(id, full_name, avatar_url),
+          participants:activity_participants(user_id, profiles(id, full_name, avatar_url))
         `
         )
         .gte("date_time", new Date().toISOString())
@@ -133,14 +138,6 @@ export default function Feed() {
         query = query
           .gte("date_time", today.toISOString())
           .lt("date_time", tomorrow.toISOString());
-      } else if (selectedDate === "Tomorrow") {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const dayAfter = new Date(tomorrow);
-        dayAfter.setDate(dayAfter.getDate() + 1);
-        query = query
-          .gte("date_time", tomorrow.toISOString())
-          .lt("date_time", dayAfter.toISOString());
       } else if (selectedDate === "This Week") {
         const today = new Date();
         const nextWeek = new Date(today);
@@ -155,7 +152,32 @@ export default function Feed() {
       if (error) {
         console.error("Error fetching activities:", error);
       } else {
-        setActivities(data || []);
+        // Map participants to flat array of {id, full_name, avatar_url}
+        const activitiesWithParticipants = (data || []).map((activity) => {
+          let participants = [];
+          if (Array.isArray(activity.participants)) {
+            // Only include valid profiles with a non-empty full_name
+            participants = activity.participants
+              .map((p) => p.profiles || p)
+              // Only include valid profiles with a non-empty full_name
+              .filter((p) => p && p.full_name && p.full_name.trim().length > 0);
+          }
+          // Always include organizer as a participant if not already in the list
+          if (
+            activity.organizer &&
+            typeof activity.organizer.full_name === "string" &&
+            activity.organizer.full_name.trim().length > 0
+          ) {
+            const alreadyIncluded = participants.some(
+              (p) => p.id === activity.organizer.id
+            );
+            if (!alreadyIncluded) {
+              participants = [activity.organizer, ...participants];
+            }
+          }
+          return { ...activity, participants };
+        });
+        setActivities(activitiesWithParticipants);
       }
     } catch (err) {
       console.error("Error:", err);
