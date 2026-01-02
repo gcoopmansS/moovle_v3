@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { sports } from "../config/sports";
 import ActivityCard from "../components/ActivityCard";
+import Modal from "../components/Modal";
 
 const dateFilters = ["All", "Today", "Tomorrow", "This Week"];
 
@@ -28,6 +29,10 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState({}); // { [activityId]: boolean }
   const [joinedIds, setJoinedIds] = useState([]); // [activityId]
+
+  // Modal state for leave confirmation
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [activityToLeave, setActivityToLeave] = useState(null);
 
   const firstName = profile?.full_name?.split(" ")[0] || "there";
 
@@ -232,6 +237,27 @@ export default function Feed() {
 
   return (
     <div className="w-full">
+      {/* Leave Confirmation Modal */}
+      <Modal
+        open={leaveModalOpen}
+        onClose={() => {
+          setLeaveModalOpen(false);
+          setActivityToLeave(null);
+        }}
+        title="Leave Activity?"
+        confirmLabel="Leave"
+        loading={activityToLeave ? joining[activityToLeave.id] : false}
+        onConfirm={async () => {
+          if (activityToLeave) {
+            await handleLeave(activityToLeave);
+            setLeaveModalOpen(false);
+            setActivityToLeave(null);
+          }
+        }}
+      >
+        Are you sure you want to leave this activity?
+      </Modal>
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-800 mb-1">
@@ -312,7 +338,10 @@ export default function Feed() {
                 joined={joined}
                 loading={joining[activity.id]}
                 onJoin={() => handleJoin(activity)}
-                onLeave={() => handleLeave(activity)}
+                onLeave={() => {
+                  setLeaveModalOpen(true);
+                  setActivityToLeave(activity);
+                }}
                 currentCount={currentCount}
                 capacity={capacity}
               />

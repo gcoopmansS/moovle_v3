@@ -5,6 +5,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import ActivityCard from "../components/ActivityCard";
 
+import Modal from "../components/Modal";
+
 export default function Agenda() {
   const [showPast, setShowPast] = useState(false);
   const { user } = useAuth();
@@ -13,6 +15,10 @@ export default function Agenda() {
   const [joining, setJoining] = useState({}); // { [activityId]: boolean }
   const [participantCounts, setParticipantCounts] = useState({}); // { [activityId]: count }
   const [loading, setLoading] = useState(true);
+
+  // Modal state for leave confirmation
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [activityToLeave, setActivityToLeave] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -299,7 +305,10 @@ export default function Agenda() {
                               joined={joined}
                               isPast={isPast}
                               loading={joining[activity.id]}
-                              onLeave={() => handleLeave(activity)}
+                              onLeave={() => {
+                                setLeaveModalOpen(true);
+                                setActivityToLeave(activity);
+                              }}
                               currentCount={
                                 (participantCounts[activity.id] || 0) + 1
                               }
@@ -349,7 +358,10 @@ export default function Agenda() {
                               joined={joined}
                               isPast={isPast}
                               loading={joining[activity.id]}
-                              onLeave={() => handleLeave(activity)}
+                              onLeave={() => {
+                                setLeaveModalOpen(true);
+                                setActivityToLeave(activity);
+                              }}
                               currentCount={
                                 (participantCounts[activity.id] || 0) + 1
                               }
@@ -402,7 +414,10 @@ export default function Agenda() {
                             joined={joined}
                             isPast={isPast}
                             loading={joining[activity.id]}
-                            onLeave={() => handleLeave(activity)}
+                            onLeave={() => {
+                              setLeaveModalOpen(true);
+                              setActivityToLeave(activity);
+                            }}
                             currentCount={
                               (participantCounts[activity.id] || 0) + 1
                             }
@@ -450,6 +465,26 @@ export default function Agenda() {
           </button>
         </div>
       )}
+      {/* Leave Confirmation Modal */}
+      <Modal
+        open={leaveModalOpen}
+        onClose={() => {
+          setLeaveModalOpen(false);
+          setActivityToLeave(null);
+        }}
+        title="Leave Activity?"
+        confirmLabel="Leave"
+        loading={activityToLeave ? joining[activityToLeave.id] : false}
+        onConfirm={async () => {
+          if (activityToLeave) {
+            await handleLeave(activityToLeave);
+            setLeaveModalOpen(false);
+            setActivityToLeave(null);
+          }
+        }}
+      >
+        Are you sure you want to leave this activity?
+      </Modal>
       {!loading &&
         (activities.length === 0
           ? renderEmptyState()
