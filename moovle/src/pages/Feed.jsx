@@ -158,6 +158,36 @@ export default function Feed() {
   const fetchActivities = async () => {
     setLoading(true);
     try {
+      // First, get user's mate IDs for visibility filtering
+      let mateIds = [];
+      let invitedActivityIds = [];
+
+      if (user) {
+        // Fetch mates
+        const { data: matesData } = await supabase
+          .from("mates")
+          .select("requester_id, receiver_id")
+          .eq("status", "accepted")
+          .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+        if (matesData) {
+          mateIds = matesData.map((m) =>
+            m.requester_id === user.id ? m.receiver_id : m.requester_id
+          );
+        }
+
+        // Fetch activity invitations for the user
+        const { data: invitesData } = await supabase
+          .from("activity_invites")
+          .select("activity_id")
+          .eq("invitee_id", user.id)
+          .in("status", ["pending", "accepted"]);
+
+        if (invitesData) {
+          invitedActivityIds = invitesData.map((invite) => invite.activity_id);
+        }
+      }
+
       let query = supabase
         .from("activities")
         .select(
@@ -197,8 +227,30 @@ export default function Feed() {
       if (error) {
         console.error("Error fetching activities:", error);
       } else {
+        // Filter activities based on visibility permissions
+        const visibleActivities = (data || []).filter((activity) => {
+          // User can always see their own activities
+          if (activity.creator_id === user?.id) {
+            return true;
+          }
+
+          // Apply visibility rules
+          switch (activity.visibility) {
+            case "public":
+              return true; // Everyone can see public activities
+            case "mates":
+              // Only mates can see mates-only activities
+              return mateIds.includes(activity.creator_id);
+            case "invite_only":
+              // For invite-only activities, check if user was invited
+              return invitedActivityIds.includes(activity.id);
+            default:
+              return true; // Default to public if visibility is not set
+          }
+        });
+
         // Map participants to flat array of {id, full_name, avatar_url}
-        const activitiesWithParticipants = (data || []).map((activity) => {
+        const activitiesWithParticipants = visibleActivities.map((activity) => {
           let participants = [];
           if (Array.isArray(activity.participants)) {
             // Only include valid profiles with a non-empty full_name
