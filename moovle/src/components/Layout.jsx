@@ -1,19 +1,24 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { Bell, User, Calendar, Check, X } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { notifyMateAccepted } from "../lib/notifications";
 import Sidebar from "./Sidebar";
+import ActivityModal from "./ActivityModal";
 
 export default function Layout() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Global activity modal state
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [modalLoading, setModalLoading] = useState({});
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -125,6 +130,45 @@ export default function Layout() {
       supabase.removeChannel(channel);
     };
   }, [user, fetchNotifications]);
+
+  // Listen for activity modal events from notifications
+  useEffect(() => {
+    const handleOpenActivityModal = async (event) => {
+      const { activityId } = event.detail;
+
+      // Fetch the full activity data
+      try {
+        const { data: activityData, error } = await supabase
+          .from("activities")
+          .select(
+            `
+            *,
+            profiles:creator_id(full_name, avatar_url)
+          `
+          )
+          .eq("id", activityId)
+          .single();
+
+        if (error) {
+          console.error("Error fetching activity:", error);
+          return;
+        }
+
+        if (activityData) {
+          setSelectedActivity(activityData);
+          setActivityModalOpen(true);
+        }
+      } catch (err) {
+        console.error("Error opening activity modal:", err);
+      }
+    };
+
+    window.addEventListener("openActivityModal", handleOpenActivityModal);
+
+    return () => {
+      window.removeEventListener("openActivityModal", handleOpenActivityModal);
+    };
+  }, []);
 
   const markAsRead = async (notificationId) => {
     try {
@@ -294,6 +338,61 @@ export default function Layout() {
       console.error("Error declining mate request:", error);
     }
   };
+
+  // Activity join/leave functions for the global modal
+  const handleJoinActivity = async (activity) => {
+    if (modalLoading[activity.id]) return;
+
+    setModalLoading((prev) => ({ ...prev, [activity.id]: true }));
+
+    try {
+      const { error } = await supabase.from("activity_participants").insert({
+        activity_id: activity.id,
+        user_id: user.id,
+      });
+
+      if (error) {
+        console.error("Error joining activity:", error);
+        return;
+      }
+
+      // Close modal after successful join
+      setActivityModalOpen(false);
+      setSelectedActivity(null);
+    } catch (err) {
+      console.error("Error joining activity:", err);
+    } finally {
+      setModalLoading((prev) => ({ ...prev, [activity.id]: false }));
+    }
+  };
+
+  const handleLeaveActivity = async (activity) => {
+    if (modalLoading[activity.id]) return;
+
+    setModalLoading((prev) => ({ ...prev, [activity.id]: true }));
+
+    try {
+      const { error } = await supabase
+        .from("activity_participants")
+        .delete()
+        .eq("activity_id", activity.id)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error leaving activity:", error);
+        return;
+      }
+
+      // Close modal after successful leave
+      setActivityModalOpen(false);
+      setSelectedActivity(null);
+    } catch (err) {
+      console.error("Error leaving activity:", err);
+    } finally {
+      setModalLoading((prev) => ({ ...prev, [activity.id]: false }));
+    }
+  };
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case "mate_request":
@@ -420,7 +519,19 @@ export default function Layout() {
                                   notification.related_activity_id &&
                                   notification.type !== "mate_request"
                                 ) {
-                                  navigate("/agenda");
+                                  // Dispatch event to open activity modal on current page
+                                  const activityEvent = new CustomEvent(
+                                    "openActivityModal",
+                                    {
+                                      detail: {
+                                        activityId:
+                                          notification.related_activity_id,
+                                        activityData:
+                                          notification.related_activity,
+                                      },
+                                    }
+                                  );
+                                  window.dispatchEvent(activityEvent);
                                 }
                                 setShowDropdown(false);
                               }
@@ -503,6 +614,33 @@ export default function Layout() {
           </div>
 
           <Outlet />
+
+          {/* Global Activity Modal */}
+          {selectedActivity &&
+            (() => {
+              const isHost = selectedActivity.creator_id === user.id;
+              // For simplicity, assume not joined since we don't fetch this data globally
+              // The modal will still show the correct join/leave buttons
+              const joined = false;
+              const currentCount = 1; // Host counts as 1, simplified for global modal
+
+              return (
+                <ActivityModal
+                  activity={selectedActivity}
+                  open={activityModalOpen}
+                  onClose={() => {
+                    setActivityModalOpen(false);
+                    setSelectedActivity(null);
+                  }}
+                  joined={joined}
+                  isHost={isHost}
+                  currentCount={currentCount}
+                  onJoin={() => handleJoinActivity(selectedActivity)}
+                  onLeave={() => handleLeaveActivity(selectedActivity)}
+                  loading={modalLoading[selectedActivity.id] || false}
+                />
+              );
+            })()}
         </div>
       </main>
     </div>

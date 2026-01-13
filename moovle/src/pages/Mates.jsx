@@ -326,10 +326,10 @@ export default function Mates() {
       fetchMatesData();
     };
 
-    window.addEventListener('mateRequestUpdated', handleMateRequestUpdate);
-    
+    window.addEventListener("mateRequestUpdated", handleMateRequestUpdate);
+
     return () => {
-      window.removeEventListener('mateRequestUpdated', handleMateRequestUpdate);
+      window.removeEventListener("mateRequestUpdated", handleMateRequestUpdate);
     };
   }, [fetchMatesData]);
 

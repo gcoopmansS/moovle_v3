@@ -82,38 +82,13 @@ export default function Feed() {
     if (!user) return;
     setJoining((j) => ({ ...j, [activity.id]: true }));
 
-    // Optimistically update local state
-    setActivities((prev) =>
-      prev.map((a) =>
-        a.id === activity.id
-          ? {
-              ...a,
-              participants: [
-                ...a.participants,
-                {
-                  id: user.id,
-                  full_name: profile.full_name,
-                  avatar_url: profile.avatar_url,
-                },
-              ],
-            }
-          : a
-      )
-    );
-    setParticipantCounts((prev) => ({
-      ...prev,
-      [activity.id]: (prev[activity.id] || 0) + 1,
-    }));
-    setJoinedIds((ids) => [...ids, activity.id]);
-
     // Make the API call
     const { error } = await supabase
       .from("activity_participants")
       .insert({ activity_id: activity.id, user_id: user.id });
 
     if (error) {
-      // Rollback on error
-      await fetchActivities();
+      console.error("Error joining activity:", error);
     } else {
       // Send notification to activity creator if join was successful
       if (activity.creator_id !== user.id) {
@@ -127,31 +102,18 @@ export default function Feed() {
           activity.title
         );
       }
+
+      // Refetch only this activity to ensure consistency
+      await refetchActivity(activity.id);
     }
 
     setJoining((j) => ({ ...j, [activity.id]: false }));
   };
-  // Leave activity handler (optional, for completeness)
+
+  // Leave activity handler
   const handleLeave = async (activity) => {
     if (!user) return;
     setJoining((j) => ({ ...j, [activity.id]: true }));
-
-    // Optimistically update local state
-    setActivities((prev) =>
-      prev.map((a) =>
-        a.id === activity.id
-          ? {
-              ...a,
-              participants: a.participants.filter((p) => p.id !== user.id),
-            }
-          : a
-      )
-    );
-    setParticipantCounts((prev) => ({
-      ...prev,
-      [activity.id]: Math.max((prev[activity.id] || 1) - 1, 0),
-    }));
-    setJoinedIds((ids) => ids.filter((id) => id !== activity.id));
 
     // Make the API call
     const { error } = await supabase
@@ -161,8 +123,7 @@ export default function Feed() {
       .eq("user_id", user.id);
 
     if (error) {
-      // Rollback on error
-      await fetchActivities();
+      console.error("Error leaving activity:", error);
     } else {
       // Send notification to activity creator if leave was successful
       if (activity.creator_id !== user.id) {
@@ -176,9 +137,101 @@ export default function Feed() {
           activity.title
         );
       }
+
+      // Refetch only this activity to ensure consistency
+      await refetchActivity(activity.id);
     }
 
     setJoining((j) => ({ ...j, [activity.id]: false }));
+  };
+
+  // Refetch specific activity data
+  const refetchActivity = async (activityId) => {
+    try {
+      // Fetch updated activity data
+      const { data: activityData, error: activityError } = await supabase
+        .from("activities")
+        .select(
+          `
+          *,
+          organizer:profiles!creator_id(id, full_name, avatar_url),
+          participants:activity_participants(user_id, profiles(id, full_name, avatar_url))
+        `
+        )
+        .eq("id", activityId)
+        .single();
+
+      if (activityError) {
+        console.error("Error refetching activity:", activityError);
+        return;
+      }
+
+      console.log("Refetched activity data:", activityData);
+      console.log("Participants structure:", activityData.participants);
+
+      // Transform participants data to match expected structure (same as fetchActivities)
+      let participants = [];
+      if (Array.isArray(activityData.participants)) {
+        // Only include valid profiles with a non-empty full_name
+        participants = activityData.participants
+          .map((p) => p.profiles || p)
+          // Only include valid profiles with a non-empty full_name
+          .filter((p) => p && p.full_name && p.full_name.trim().length > 0);
+      }
+
+      // Always include organizer as a participant if not already in the list
+      if (
+        activityData.organizer &&
+        typeof activityData.organizer.full_name === "string" &&
+        activityData.organizer.full_name.trim().length > 0
+      ) {
+        const alreadyIncluded = participants.some(
+          (p) => p.id === activityData.organizer.id
+        );
+        if (!alreadyIncluded) {
+          participants = [activityData.organizer, ...participants];
+        }
+      }
+
+      // Update activity with transformed participants
+      activityData.participants = participants;
+
+      console.log("Transformed participants:", activityData.participants);
+
+      // Update the specific activity in state
+      setActivities((prev) =>
+        prev.map((a) => (a.id === activityId ? activityData : a))
+      );
+
+      // Update participant count for this activity (exclude organizer since they're always included)
+      const participantCount = participants.length - 1; // Subtract 1 for organizer
+      setParticipantCounts((prev) => ({
+        ...prev,
+        [activityId]: Math.max(0, participantCount),
+      }));
+
+      // Update joined status
+      const isJoined = participants.some((p) => p.id === user.id) || false;
+      setJoinedIds((prev) => {
+        const filtered = prev.filter((id) => id !== activityId);
+        return isJoined ? [...filtered, activityId] : filtered;
+      });
+    } catch (error) {
+      console.error("Error refetching activity:", error);
+    }
+  };
+
+  // Handle opening activity details modal
+  const handleActivityClick = (activity) => {
+    console.log("Activity clicked:", activity);
+    // Dispatch event to open global activity modal
+    const activityEvent = new CustomEvent("openActivityModal", {
+      detail: {
+        activityId: activity.id,
+        activityData: activity,
+      },
+    });
+    window.dispatchEvent(activityEvent);
   };
 
   const fetchActivities = async () => {
@@ -403,15 +456,17 @@ export default function Feed() {
           {filteredActivities.map((activity) => {
             const isHost = activity.creator_id === user.id;
             const joined = joinedIds.includes(activity.id);
-            // Organizer always counts as a participant
-            let currentCount = participantCounts[activity.id] || 0;
-            if (activity.creator_id) currentCount += 1;
+            // Get participant count (excluding host) and add host count
+            const participantCount = participantCounts[activity.id] ?? 0;
+            const currentCount =
+              participantCount + (activity.creator_id ? 1 : 0);
             const capacity =
               activity.max_participants || activity.capacity || "∞";
             return (
               <ActivityCard
                 key={activity.id}
                 activity={activity}
+                onClick={() => handleActivityClick(activity)}
                 isHost={isHost}
                 joined={joined}
                 loading={joining[activity.id]}
