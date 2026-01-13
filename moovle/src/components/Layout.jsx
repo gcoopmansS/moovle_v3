@@ -1,8 +1,9 @@
 import { Outlet, useNavigate } from "react-router-dom";
-import { Bell, User, Calendar } from "lucide-react";
+import { Bell, User, Calendar, Check, X } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import { notifyMateAccepted } from "../lib/notifications";
 import Sidebar from "./Sidebar";
 
 export default function Layout() {
@@ -32,7 +33,7 @@ export default function Layout() {
 
     setLoading(true);
     try {
-      // Get recent notifications with related data
+      // Get the 20 most recent notifications with related data
       const { data: notificationsData, error: notificationsError } =
         await supabase
           .from("notifications")
@@ -45,14 +46,47 @@ export default function Layout() {
           )
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(10);
+          .limit(20);
 
       if (notificationsError) throw notificationsError;
 
-      setNotifications(notificationsData || []);
+      // For mate request notifications, check if they've been handled
+      const processedNotifications = await Promise.all(
+        (notificationsData || []).map(async (notification) => {
+          if (
+            notification.type === "mate_request" &&
+            notification.related_user_id
+          ) {
+            // Check if there's still a pending mate request
+            const { data: mateRequest } = await supabase
+              .from("mates")
+              .select("id, status")
+              .eq("requester_id", notification.related_user_id)
+              .eq("receiver_id", user.id)
+              .single();
+
+            if (!mateRequest) {
+              // No mate request found = declined
+              return { ...notification, mate_request_handled: "declined" };
+            } else if (mateRequest.status === "accepted") {
+              // Found with accepted status
+              return { ...notification, mate_request_handled: "accepted" };
+            } else if (mateRequest.status === "pending") {
+              // Still pending
+              return { ...notification, mate_request_handled: null };
+            } else {
+              // Any other status (declined, etc.)
+              return { ...notification, mate_request_handled: "declined" };
+            }
+          }
+          return notification;
+        })
+      );
+
+      setNotifications(processedNotifications);
 
       // Count unread notifications
-      const unreadNotifications = (notificationsData || []).filter(
+      const unreadNotifications = processedNotifications.filter(
         (n) => !n.is_read
       );
       setUnreadCount(unreadNotifications.length);
@@ -125,6 +159,120 @@ export default function Layout() {
     }
   };
 
+  // Accept mate request from notification
+  const acceptMateRequest = async (requesterId) => {
+    try {
+      // First, find the mate request ID
+      const { data: mateRequest, error: findError } = await supabase
+        .from("mates")
+        .select("id")
+        .eq("requester_id", requesterId)
+        .eq("receiver_id", user.id)
+        .eq("status", "pending")
+        .single();
+
+      if (findError || !mateRequest) {
+        console.error("Could not find mate request:", findError);
+        return;
+      }
+
+      // Update the mate request status
+      const { error } = await supabase
+        .from("mates")
+        .update({ status: "accepted", updated_at: new Date().toISOString() })
+        .eq("id", mateRequest.id);
+
+      if (error) throw error;
+
+      // Send acceptance notification to requester
+      const userName = user.user_metadata?.full_name || "Someone";
+      await notifyMateAccepted(requesterId, user.id, userName);
+
+      // Mark the mate request notification as read and update locally
+      const notificationToUpdate = notifications.find(
+        (n) => n.type === "mate_request" && n.related_user_id === requesterId
+      );
+
+      if (notificationToUpdate && !notificationToUpdate.is_read) {
+        await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("id", notificationToUpdate.id);
+      }
+
+      // Update local state - mark notification as read and add accepted flag
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.type === "mate_request" && n.related_user_id === requesterId
+            ? { ...n, is_read: true, mate_request_handled: "accepted" }
+            : n
+        )
+      );
+
+      // Update unread count
+      if (notificationToUpdate && !notificationToUpdate.is_read) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Error accepting mate request:", error);
+    }
+  };
+
+  // Decline mate request from notification
+  const declineMateRequest = async (requesterId) => {
+    try {
+      // First, find the mate request ID
+      const { data: mateRequest, error: findError } = await supabase
+        .from("mates")
+        .select("id")
+        .eq("requester_id", requesterId)
+        .eq("receiver_id", user.id)
+        .eq("status", "pending")
+        .single();
+
+      if (findError || !mateRequest) {
+        console.error("Could not find mate request:", findError);
+        return;
+      }
+
+      // Delete the mate request
+      const { error } = await supabase
+        .from("mates")
+        .delete()
+        .eq("id", mateRequest.id);
+
+      if (error) throw error;
+
+      // Mark the mate request notification as read and update locally
+      const notificationToUpdate = notifications.find(
+        (n) => n.type === "mate_request" && n.related_user_id === requesterId
+      );
+
+      if (notificationToUpdate && !notificationToUpdate.is_read) {
+        await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("id", notificationToUpdate.id);
+      }
+
+      // Update local state - mark notification as read and add declined flag
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.type === "mate_request" && n.related_user_id === requesterId
+            ? { ...n, is_read: true, mate_request_handled: "declined" }
+            : n
+        )
+      );
+
+      // Update unread count
+      if (notificationToUpdate && !notificationToUpdate.is_read) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Error declining mate request:", error);
+    }
+  };
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case "mate_request":
@@ -164,7 +312,15 @@ export default function Layout() {
           {/* Notification Bell - Fixed Position */}
           <div className="fixed top-8 right-8 z-50" ref={dropdownRef}>
             <button
-              onClick={() => setShowDropdown(!showDropdown)}
+              onClick={() => {
+                const wasClosing = showDropdown;
+                setShowDropdown(!showDropdown);
+
+                // Auto-mark all as read when opening the dropdown
+                if (!wasClosing && unreadCount > 0) {
+                  markAllAsRead();
+                }
+              }}
               className={`p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer ${
                 showDropdown ? "bg-coral-50" : ""
               }`}
@@ -194,7 +350,7 @@ export default function Layout() {
                   {unreadCount > 0 && (
                     <button
                       onClick={markAllAsRead}
-                      className="text-xs text-coral-600 hover:text-coral-700 font-medium"
+                      className="text-xs text-coral-600 hover:text-coral-700 font-medium cursor-pointer"
                     >
                       Mark all read
                     </button>
@@ -225,21 +381,30 @@ export default function Layout() {
                     {notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer ${
+                        className={`px-4 py-3 border-b border-gray-50 ${
                           !notification.is_read ? "bg-blue-50" : ""
+                        } ${
+                          notification.type !== "mate_request"
+                            ? "hover:bg-gray-50 cursor-pointer"
+                            : ""
                         }`}
-                        onClick={() => {
-                          if (!notification.is_read) {
-                            markAsRead(notification.id);
-                          }
-                          // Handle navigation based on notification type
-                          if (notification.related_activity_id) {
-                            navigate("/agenda");
-                          } else if (notification.type === "mate_request") {
-                            navigate("/mates");
-                          }
-                          setShowDropdown(false);
-                        }}
+                        onClick={
+                          notification.type !== "mate_request"
+                            ? () => {
+                                if (!notification.is_read) {
+                                  markAsRead(notification.id);
+                                }
+                                // Handle navigation based on notification type
+                                if (
+                                  notification.related_activity_id &&
+                                  notification.type !== "mate_request"
+                                ) {
+                                  navigate("/agenda");
+                                }
+                                setShowDropdown(false);
+                              }
+                            : undefined
+                        }
                       >
                         <div className="flex items-start gap-3">
                           <div className="mt-1">
@@ -257,6 +422,52 @@ export default function Layout() {
                             <p className="text-xs text-slate-400 mt-1">
                               {formatTimeAgo(notification.created_at)}
                             </p>
+
+                            {/* Mate Request Action Buttons */}
+                            {notification.type === "mate_request" && (
+                              <div className="flex items-center gap-2 mt-3">
+                                {notification.mate_request_handled ===
+                                "accepted" ? (
+                                  <div className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 text-xs font-medium rounded-md">
+                                    <Check size={12} />
+                                    Accepted
+                                  </div>
+                                ) : notification.mate_request_handled ===
+                                  "declined" ? (
+                                  <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 text-gray-600 text-xs font-medium rounded-md">
+                                    <X size={12} />
+                                    Declined
+                                  </div>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        acceptMateRequest(
+                                          notification.related_user_id
+                                        );
+                                      }}
+                                      className="flex items-center gap-1 px-3 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-medium rounded-md transition-colors cursor-pointer"
+                                    >
+                                      <Check size={12} />
+                                      Accept
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        declineMateRequest(
+                                          notification.related_user_id
+                                        );
+                                      }}
+                                      className="flex items-center gap-1 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-md transition-colors cursor-pointer"
+                                    >
+                                      <X size={12} />
+                                      Decline
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
                           {!notification.is_read && (
                             <div className="w-2 h-2 bg-coral-500 rounded-full mt-2"></div>
@@ -264,19 +475,6 @@ export default function Layout() {
                         </div>
                       </div>
                     ))}
-
-                    {/* View All Link */}
-                    <div className="px-4 py-3 border-t border-gray-100">
-                      <button
-                        onClick={() => {
-                          navigate("/notifications");
-                          setShowDropdown(false);
-                        }}
-                        className="w-full text-center text-sm text-coral-600 hover:text-coral-700 font-medium"
-                      >
-                        View all notifications
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
