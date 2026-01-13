@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import { notifyMateRequest, notifyMateAccepted } from "../lib/notifications";
 
 export default function Mates() {
   const { user } = useAuth();
@@ -371,15 +372,8 @@ export default function Mates() {
       if (error) throw error;
 
       // Send notification to receiver
-      await supabase.from("notifications").insert({
-        user_id: receiverId,
-        type: "mate_request",
-        title: "New mate request",
-        message: `${
-          user.user_metadata?.full_name || "Someone"
-        } sent you a mate request.`,
-        related_user_id: user.id,
-      });
+      const userName = user.user_metadata?.full_name || "Someone";
+      await notifyMateRequest(receiverId, user.id, userName);
 
       // Refresh data
       await fetchMatesData();
@@ -410,15 +404,8 @@ export default function Mates() {
         .single();
 
       if (mateData) {
-        await supabase.from("notifications").insert({
-          user_id: mateData.requester_id,
-          type: "mate_accepted",
-          title: "Mate request accepted",
-          message: `${
-            user.user_metadata?.full_name || "Someone"
-          } accepted your mate request.`,
-          related_user_id: user.id,
-        });
+        const userName = user.user_metadata?.full_name || "Someone";
+        await notifyMateAccepted(mateData.requester_id, user.id, userName);
       }
 
       await fetchMatesData();

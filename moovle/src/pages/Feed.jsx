@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { sports } from "../config/sports";
+import { notifyActivityJoined, notifyActivityLeft } from "../lib/notifications";
 import ActivityCard from "../components/ActivityCard";
 import Modal from "../components/Modal";
 
@@ -112,8 +113,20 @@ export default function Feed() {
 
     if (error) {
       // Rollback on error
-      // (You can show a toast or revert state here)
       await fetchActivities();
+    } else {
+      // Send notification to activity creator if join was successful
+      if (activity.creator_id !== user.id) {
+        const userName =
+          profile?.full_name || user.user_metadata?.full_name || "Someone";
+        await notifyActivityJoined(
+          activity.creator_id,
+          user.id,
+          userName,
+          activity.id,
+          activity.title
+        );
+      }
     }
 
     setJoining((j) => ({ ...j, [activity.id]: false }));
@@ -150,6 +163,19 @@ export default function Feed() {
     if (error) {
       // Rollback on error
       await fetchActivities();
+    } else {
+      // Send notification to activity creator if leave was successful
+      if (activity.creator_id !== user.id) {
+        const userName =
+          profile?.full_name || user.user_metadata?.full_name || "Someone";
+        await notifyActivityLeft(
+          activity.creator_id,
+          user.id,
+          userName,
+          activity.id,
+          activity.title
+        );
+      }
     }
 
     setJoining((j) => ({ ...j, [activity.id]: false }));

@@ -3,13 +3,14 @@ import { format, isToday, isTomorrow } from "date-fns";
 import { MoreHorizontal } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import { notifyActivityLeft } from "../lib/notifications";
 import ActivityCard from "../components/ActivityCard";
 
 import Modal from "../components/Modal";
 
 export default function Agenda() {
   const [showPast, setShowPast] = useState(false);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [activities, setActivities] = useState([]);
   const [joinedIds, setJoinedIds] = useState([]); // [activityId]
   const [joining, setJoining] = useState({}); // { [activityId]: boolean }
@@ -145,6 +146,19 @@ export default function Agenda() {
     if (error) {
       // Rollback on error
       await fetchActivities();
+    } else {
+      // Send notification to activity creator if leave was successful
+      if (activity.creator_id !== user.id) {
+        const userName =
+          profile?.full_name || user.user_metadata?.full_name || "Someone";
+        await notifyActivityLeft(
+          activity.creator_id,
+          user.id,
+          userName,
+          activity.id,
+          activity.title
+        );
+      }
     }
     setJoining((j) => ({ ...j, [activity.id]: false }));
   };

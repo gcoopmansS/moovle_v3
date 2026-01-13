@@ -13,6 +13,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { sports, visibilityOptions, getSportById } from "../config/sports";
+import { notifyActivityInvite } from "../lib/notifications";
 import LocationInput from "../components/LocationInput";
 
 // Map visibility icons
@@ -24,7 +25,7 @@ const visibilityIcons = {
 
 export default function CreateActivity() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [selectedSport, setSelectedSport] = useState("running");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -179,7 +180,7 @@ export default function CreateActivity() {
         return;
       }
 
-      // If invite-only, create invitations
+      // If invite-only, create invitations and send notifications
       if (visibility === "invite_only" && selectedInvites.length > 0) {
         const invites = selectedInvites.map((mateId) => ({
           activity_id: activityData.id,
@@ -195,6 +196,25 @@ export default function CreateActivity() {
         if (inviteError) {
           console.error("Error creating invites:", inviteError);
           // Don't fail the whole activity creation, just log the error
+        } else {
+          // Send notifications to invited users
+          const invitePromises = selectedInvites.map(async (mateId) => {
+            // Get the mate's profile for the notification
+            const mate = mates.find((m) => m.mate.id === mateId)?.mate;
+            const userName =
+              profile?.full_name || user.user_metadata?.full_name || "Someone";
+            if (mate) {
+              await notifyActivityInvite(
+                mateId,
+                user.id,
+                userName,
+                activityData.id,
+                title
+              );
+            }
+          });
+
+          await Promise.all(invitePromises);
         }
       }
 
