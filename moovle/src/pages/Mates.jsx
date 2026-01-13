@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Modal from "../components/Modal";
 import SuggestedMatesCarousel from "../components/SuggestedMatesCarousel";
 import { buildMateSuggestions } from "../lib/mateSuggestions";
@@ -43,7 +43,7 @@ export default function Mates() {
     { id: "mates", label: "Mates", count: mates.length },
   ];
 
-  const fetchMatesData = async () => {
+  const fetchMatesData = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch accepted mates (where current user is either requester or receiver)
@@ -110,7 +110,7 @@ export default function Mates() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   // Advanced mate suggestion fetching and scoring
   const fetchMateSuggestions = async () => {
@@ -318,6 +318,20 @@ export default function Mates() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Listen for mate request updates from other components (like notifications)
+  useEffect(() => {
+    const handleMateRequestUpdate = () => {
+      // Refresh mates data when mate requests are accepted/declined elsewhere
+      fetchMatesData();
+    };
+
+    window.addEventListener('mateRequestUpdated', handleMateRequestUpdate);
+    
+    return () => {
+      window.removeEventListener('mateRequestUpdated', handleMateRequestUpdate);
+    };
+  }, [fetchMatesData]);
 
   // Search for users
   useEffect(() => {

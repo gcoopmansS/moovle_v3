@@ -213,6 +213,17 @@ export default function Layout() {
       if (notificationToUpdate && !notificationToUpdate.is_read) {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
+
+      // Dispatch custom event to notify other components (like Mates page)
+      window.dispatchEvent(
+        new CustomEvent("mateRequestUpdated", {
+          detail: {
+            type: "accepted",
+            requesterId,
+            mateRequestId: mateRequest.id,
+          },
+        })
+      );
     } catch (error) {
       console.error("Error accepting mate request:", error);
     }
@@ -268,11 +279,21 @@ export default function Layout() {
       if (notificationToUpdate && !notificationToUpdate.is_read) {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
+
+      // Dispatch custom event to notify other components (like Mates page)
+      window.dispatchEvent(
+        new CustomEvent("mateRequestUpdated", {
+          detail: {
+            type: "declined",
+            requesterId,
+            mateRequestId: mateRequest.id,
+          },
+        })
+      );
     } catch (error) {
       console.error("Error declining mate request:", error);
     }
   };
-
   const getNotificationIcon = (type) => {
     switch (type) {
       case "mate_request":
