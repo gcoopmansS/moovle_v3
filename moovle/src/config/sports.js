@@ -54,6 +54,15 @@ export const sports = [
     defaultDuration: 60,
     capacityOptions: [2, 4],
   },
+  {
+    id: "swimming",
+    label: "Swimming",
+    icon: "🏊",
+    supportsDistance: true,
+    defaultDistance: 1,
+    defaultDuration: 45,
+    capacityOptions: Array.from({ length: 19 }, (_, i) => i + 2), // 2-20
+  },
 ];
 
 // Helper functions

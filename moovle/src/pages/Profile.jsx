@@ -1,22 +1,84 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, Mail, MapPin, Check, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  Mail,
+  MapPin,
+  Check,
+  X,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
+import { sports } from "../config/sports";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { profile, user, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [success, setSuccess] = useState(false);
+  const [stats, setStats] = useState({
+    organized: 0,
+    joined: 0,
+    mates: 0,
+  });
   const [editForm, setEditForm] = useState({
     full_name: "",
     city: "",
     bio: "",
+    favorite_sports: [],
   });
+  const [showSportsSelector, setShowSportsSelector] = useState(false);
 
-  const stats = [
-    { label: "Organized", value: profile?.activities_organized || 0 },
-    { label: "Joined", value: profile?.activities_joined || 0 },
-    { label: "Mates", value: profile?.mates_count || 0 },
+  // Fetch user statistics
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchStats = async () => {
+      setStatsLoading(true);
+      try {
+        // Get organized activities count
+        const { count: organizedCount } = await supabase
+          .from("activities")
+          .select("*", { count: "exact", head: true })
+          .eq("creator_id", user.id);
+
+        // Get joined activities count (excluding own activities)
+        const { count: joinedCount } = await supabase
+          .from("activity_participants")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        // Get mates count
+        const { count: matesCount } = await supabase
+          .from("mates")
+          .select("*", { count: "exact", head: true })
+          .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .eq("status", "accepted");
+
+        setStats({
+          organized: organizedCount || 0,
+          joined: joinedCount || 0,
+          mates: matesCount || 0,
+        });
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [user]);
+
+  const statsData = [
+    { label: "Organized", value: stats.organized },
+    { label: "Joined", value: stats.joined },
+    { label: "Mates", value: stats.mates },
   ];
 
   const getInitial = () => {
@@ -30,21 +92,72 @@ export default function Profile() {
   };
 
   const handleEdit = () => {
+    // Ensure favorite_sports is always an array
+    const favoriteSports = Array.isArray(profile?.favorite_sports)
+      ? profile.favorite_sports
+      : [];
+
     setEditForm({
       full_name: profile?.full_name || "",
       city: profile?.city || "",
       bio: profile?.bio || "",
+      favorite_sports: favoriteSports,
     });
     setIsEditing(true);
+    setSuccess(false);
   };
 
   const handleSave = async () => {
-    await updateProfile(editForm);
-    setIsEditing(false);
+    if (!editForm.full_name.trim()) {
+      alert("Name is required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await updateProfile(editForm);
+      if (error) {
+        console.error("Error updating profile:", error);
+        alert("Failed to update profile");
+      } else {
+        setSuccess(true);
+        setIsEditing(false);
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("An error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
+    setShowSportsSelector(false);
+    setSuccess(false);
+  };
+
+  const addSport = (sportId) => {
+    // Check if sport already exists (case-insensitive)
+    const alreadyExists = editForm.favorite_sports.some(
+      (existingSport) => existingSport.toLowerCase() === sportId.toLowerCase()
+    );
+
+    if (!alreadyExists) {
+      setEditForm({
+        ...editForm,
+        favorite_sports: [...editForm.favorite_sports, sportId],
+      });
+    }
+    setShowSportsSelector(false);
+  };
+
+  const removeSport = (sportId) => {
+    setEditForm({
+      ...editForm,
+      favorite_sports: editForm.favorite_sports.filter((id) => id !== sportId),
+    });
   };
 
   return (
@@ -66,7 +179,7 @@ export default function Profile() {
           <div className="w-24 h-24 bg-coral-500 rounded-full flex items-center justify-center text-white text-3xl font-semibold">
             {getInitial()}
           </div>
-          <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border border-gray-200 cursor-pointer">
+          <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
             <Camera size={16} className="text-slate-600" />
           </button>
         </div>
@@ -81,25 +194,45 @@ export default function Profile() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white rounded-xl p-4 border border-gray-100 text-center"
-          >
-            <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
-            <p className="text-sm text-slate-500">{stat.label}</p>
-          </div>
-        ))}
+        {statsLoading
+          ? // Loading skeleton
+            Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-xl p-4 border border-gray-100 text-center"
+              >
+                <div className="w-8 h-8 bg-gray-200 rounded animate-pulse mx-auto mb-2"></div>
+                <div className="w-16 h-4 bg-gray-200 rounded animate-pulse mx-auto"></div>
+              </div>
+            ))
+          : // Actual stats
+            statsData.map((stat) => (
+              <div
+                key={stat.label}
+                className="bg-white rounded-xl p-4 border border-gray-100 text-center"
+              >
+                <p className="text-2xl font-bold text-slate-800">
+                  {stat.value}
+                </p>
+                <p className="text-sm text-slate-500">{stat.label}</p>
+              </div>
+            ))}
       </div>
 
       {/* Profile Details */}
       <div className="bg-white rounded-xl border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-semibold text-slate-800">Profile Details</h3>
+          {success && (
+            <div className="flex items-center gap-2 text-green-600 text-sm">
+              <Check size={16} />
+              <span>Profile updated!</span>
+            </div>
+          )}
           {!isEditing ? (
             <button
               onClick={handleEdit}
-              className="text-coral-500 text-sm font-medium hover:underline"
+              className="text-coral-500 text-sm font-medium hover:underline cursor-pointer"
             >
               Edit
             </button>
@@ -107,13 +240,19 @@ export default function Profile() {
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                className="p-1 text-green-600 hover:bg-green-50 rounded"
+                disabled={loading}
+                className="p-1 text-green-600 hover:bg-green-50 rounded cursor-pointer disabled:opacity-50"
               >
-                <Check size={18} />
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-green-600/30 border-t-green-600 rounded-full animate-spin"></div>
+                ) : (
+                  <Check size={18} />
+                )}
               </button>
               <button
                 onClick={handleCancel}
-                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                disabled={loading}
+                className="p-1 text-red-600 hover:bg-red-50 rounded cursor-pointer disabled:opacity-50"
               >
                 <X size={18} />
               </button>
@@ -183,19 +322,115 @@ export default function Profile() {
 
           <div>
             <p className="text-sm text-slate-500 mb-1">Favorite Sports</p>
-            {profile?.favorite_sports && profile.favorite_sports.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {profile.favorite_sports.map((sport) => (
-                  <span
-                    key={sport}
-                    className="px-3 py-1 bg-coral-100 text-coral-600 rounded-full text-sm"
+            {isEditing ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {editForm.favorite_sports.map((sportId) => {
+                    // Case-insensitive matching
+                    const sport = sports.find(
+                      (s) => s.id.toLowerCase() === sportId.toLowerCase()
+                    );
+                    // Debug logging
+                    if (!sport) {
+                      console.log(
+                        "Sport not found for ID:",
+                        sportId,
+                        "Available sports:",
+                        sports.map((s) => s.id)
+                      );
+                    }
+                    return (
+                      <div
+                        key={sportId}
+                        className="flex items-center gap-2 px-3 py-1 bg-coral-100 text-coral-600 rounded-full text-sm"
+                      >
+                        <span>
+                          {sport
+                            ? `${sport.icon} ${sport.label}`
+                            : `Unknown sport: ${sportId}`}
+                        </span>
+                        <button
+                          onClick={() => removeSport(sportId)}
+                          className="text-coral-500 hover:text-red-500 cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <button
+                    onClick={() => setShowSportsSelector(!showSportsSelector)}
+                    className="flex items-center gap-1 px-3 py-1 border-2 border-dashed border-gray-300 rounded-full text-sm text-slate-500 hover:border-coral-400 hover:text-coral-600 transition-colors cursor-pointer"
                   >
-                    {sport}
-                  </span>
-                ))}
+                    <Plus size={14} />
+                    Add Sport
+                  </button>
+                </div>
+
+                {showSportsSelector && (
+                  <div className="grid grid-cols-2 gap-2 p-4 bg-gray-50 rounded-lg">
+                    {sports
+                      .filter(
+                        (sport) =>
+                          !editForm.favorite_sports.some(
+                            (existingSport) =>
+                              existingSport.toLowerCase() ===
+                              sport.id.toLowerCase()
+                          )
+                      )
+                      .map((sport) => (
+                        <button
+                          key={sport.id}
+                          onClick={() => addSport(sport.id)}
+                          className="flex items-center gap-2 p-2 text-left hover:bg-white rounded-lg transition-colors cursor-pointer"
+                        >
+                          <span className="text-xl">{sport.icon}</span>
+                          <span className="text-sm">{sport.label}</span>
+                        </button>
+                      ))}
+                  </div>
+                )}
               </div>
             ) : (
-              <p className="text-slate-400">No sports selected</p>
+              <>
+                {profile?.favorite_sports &&
+                Array.isArray(profile.favorite_sports) &&
+                profile.favorite_sports.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.favorite_sports
+                      .filter(
+                        (sportId) => sportId && typeof sportId === "string"
+                      )
+                      .map((sportId) => {
+                        // Case-insensitive matching
+                        const sport = sports.find(
+                          (s) => s.id.toLowerCase() === sportId.toLowerCase()
+                        );
+                        // Debug logging
+                        if (!sport) {
+                          console.log(
+                            "Sport not found for ID:",
+                            sportId,
+                            "Available sports:",
+                            sports.map((s) => s.id)
+                          );
+                        }
+                        return (
+                          <span
+                            key={sportId}
+                            className="px-3 py-1 bg-coral-100 text-coral-600 rounded-full text-sm"
+                          >
+                            {sport
+                              ? `${sport.icon} ${sport.label}`
+                              : `Unknown: ${sportId}`}
+                          </span>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <p className="text-slate-400">No sports selected</p>
+                )}
+              </>
             )}
           </div>
         </div>
