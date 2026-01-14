@@ -102,12 +102,12 @@ export default function ActivityModal({
           </button>
 
           <div className="flex items-start gap-6 pr-12">
-            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl border border-gray-100">
+            <div className="w-16 h-16 bg-coral-50 rounded-xl flex items-center justify-center text-2xl border border-coral-100">
               {getSportIcon(activity.sport)}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <span className="text-xs font-medium text-coral-500 uppercase tracking-wider">
                   {activity.sport}
                 </span>
                 <span
@@ -255,8 +255,8 @@ export default function ActivityModal({
               <div className="space-y-3">
                 {/* Always show organizer first */}
                 {activity.organizer && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-100">
-                    <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center font-medium text-amber-700">
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-coral-50 border border-coral-100">
+                    <div className="w-8 h-8 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                       {activity.organizer.full_name?.charAt(0) || "?"}
                     </div>
                     <div className="flex-1">
@@ -264,7 +264,7 @@ export default function ActivityModal({
                         <span className="font-medium text-slate-900">
                           {activity.organizer.full_name}
                         </span>
-                        <span className="text-xs text-amber-700 bg-amber-200 px-2 py-0.5 rounded-full font-medium">
+                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-medium">
                           Organizer
                         </span>
                       </div>
@@ -286,7 +286,7 @@ export default function ActivityModal({
                         key={index}
                         className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
                       >
-                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-medium text-slate-600">
+                        <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center font-medium text-slate-600 text-sm">
                           {participant.full_name?.charAt(0) || "?"}
                         </div>
                         <span className="font-medium text-slate-900">
@@ -361,20 +361,19 @@ export default function ActivityModal({
 
             <div className="flex items-center gap-3">
               {isHost ? (
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-700 rounded-full font-medium border border-amber-100">
-                  <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg font-medium border border-slate-200">
                   Host
                 </div>
               ) : joined ? (
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 text-green-700 rounded-full font-medium border border-green-100">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg font-medium border border-green-200">
+                    <span className="text-green-500">✓</span>
                     Joined
                   </div>
                   <button
                     onClick={onLeave}
                     disabled={loading}
-                    className="px-4 py-2.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-full font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border border-gray-200 hover:border-red-200"
+                    className="text-xs text-slate-400 hover:text-coral-500 underline cursor-pointer transition-colors disabled:opacity-50"
                   >
                     {loading ? "Leaving..." : "Leave"}
                   </button>
@@ -387,7 +386,7 @@ export default function ActivityModal({
                     (activity.max_participants &&
                       currentCount >= activity.max_participants)
                   }
-                  className="px-8 py-3 bg-coral-500 hover:bg-coral-600 text-white rounded-full font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow-md"
+                  className="px-6 py-2 bg-coral-500 hover:bg-coral-600 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">

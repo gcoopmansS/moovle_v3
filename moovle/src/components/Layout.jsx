@@ -3,7 +3,11 @@ import { Bell, User, Calendar, Check, X } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
-import { notifyMateAccepted } from "../lib/notifications";
+import {
+  notifyMateAccepted,
+  notifyActivityJoined,
+  notifyActivityLeft,
+} from "../lib/notifications";
 import Sidebar from "./Sidebar";
 import ActivityModal from "./ActivityModal";
 
@@ -361,6 +365,18 @@ export default function Layout() {
         return;
       }
 
+      // Send notification to activity creator if join was successful
+      if (activity.creator_id !== user.id) {
+        const userName = user.user_metadata?.full_name || "Someone";
+        await notifyActivityJoined(
+          activity.creator_id,
+          user.id,
+          userName,
+          activity.id,
+          activity.title
+        );
+      }
+
       // Refresh the activity data to show updated participants
       const { data: updatedActivity, error: fetchError } = await supabase
         .from("activities")
@@ -405,6 +421,18 @@ export default function Layout() {
       if (error) {
         console.error("Error leaving activity:", error);
         return;
+      }
+
+      // Send notification to activity creator if leave was successful
+      if (activity.creator_id !== user.id) {
+        const userName = user.user_metadata?.full_name || "Someone";
+        await notifyActivityLeft(
+          activity.creator_id,
+          user.id,
+          userName,
+          activity.id,
+          activity.title
+        );
       }
 
       // Refresh the activity data to show updated participants
