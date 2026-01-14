@@ -88,200 +88,294 @@ export default function ActivityModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-100">
         {/* Header */}
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-coral-50 rounded-xl flex items-center justify-center text-3xl">
-                {getSportIcon(activity.sport)}
+        <div className="relative p-8 pb-6">
+          <button
+            onClick={onClose}
+            className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-all duration-200 cursor-pointer"
+          >
+            <X size={18} className="text-slate-400" />
+          </button>
+
+          <div className="flex items-start gap-6 pr-12">
+            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl border border-gray-100">
+              {getSportIcon(activity.sport)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  {activity.sport}
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                    activity.visibility === "public"
+                      ? "bg-green-50 text-green-600 border border-green-200"
+                      : "bg-amber-50 text-amber-600 border border-amber-200"
+                  }`}
+                >
+                  <VisibilityIcon size={10} />
+                  {visibilityBadge.label}
+                </span>
               </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-coral-500 uppercase">
-                    {activity.sport}
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${visibilityBadge.color}`}
-                  >
-                    <VisibilityIcon size={12} />
-                    {visibilityBadge.label}
-                  </span>
+              <h2 className="text-3xl font-light text-slate-900 mb-3 leading-tight">
+                {activity.title}
+              </h2>
+              <div className="flex items-center gap-6 text-slate-500 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={14} className="text-slate-400" />
+                  <span>{formatActivityDate(activity.date_time)}</span>
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800">
-                  {activity.title}
-                </h2>
+                <div className="flex items-center gap-1.5">
+                  <Clock size={14} className="text-slate-400" />
+                  <span>{formatActivityTime(activity.date_time)}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Users size={14} className="text-slate-400" />
+                  <span>{currentCount || 0} joined</span>
+                </div>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X size={20} className="text-slate-400" />
-            </button>
           </div>
+
+          {/* Subtle divider */}
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mt-6"></div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          {/* Date & Time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                When & Where
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-slate-600">
-                  <Calendar size={18} className="text-coral-500" />
-                  <span>
-                    {formatActivityDate(activity.date_time)} at{" "}
-                    {formatActivityTime(activity.date_time)}
-                  </span>
-                </div>
-                {activity.duration && (
-                  <div className="flex items-center gap-3 text-slate-600">
-                    <Clock size={18} className="text-coral-500" />
-                    <span>{formatDuration(activity.duration)}</span>
+        <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
+          <div className="px-8 pb-8 space-y-8">
+            {/* Essential Info */}
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <MapPin
+                  size={16}
+                  className="text-slate-400 mt-1 flex-shrink-0"
+                />
+                <div>
+                  <div className="font-medium text-slate-900 mb-1">
+                    {activity.location}
                   </div>
-                )}
-                <div className="flex items-center gap-3 text-slate-600">
-                  <MapPin size={18} className="text-coral-500" />
-                  <span>{activity.location}</span>
+                  {activity.duration && (
+                    <div className="text-sm text-slate-500 flex items-center gap-2">
+                      <Clock size={14} />
+                      {formatDuration(activity.duration)}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
 
-            <div>
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                Participants
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-slate-600">
-                  <Users size={18} className="text-coral-500" />
-                  <span>
-                    {currentCount || 0} / {activity.max_participants || "∞"}{" "}
-                    participants
+              {activity.organizer && (
+                <div className="flex items-center gap-4">
+                  <User size={16} className="text-slate-400 flex-shrink-0" />
+                  <span className="text-slate-600">
+                    Organized by{" "}
+                    <span className="font-medium text-slate-900">
+                      {activity.organizer.full_name}
+                    </span>
                   </span>
                 </div>
+              )}
+            </div>
+
+            {/* Description */}
+            {activity.description && (
+              <div>
+                <h3 className="text-lg font-medium text-slate-900 mb-4">
+                  About this activity
+                </h3>
+                <div className="prose prose-slate max-w-none">
+                  <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                    {activity.description}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Activity Details */}
+            {(activity.distance ||
+              activity.difficulty ||
+              activity.equipment) && (
+              <div>
+                <h3 className="text-lg font-medium text-slate-900 mb-4">
+                  Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {activity.distance && (
+                    <div className="text-center p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                      <div className="text-2xl font-light text-slate-900 mb-1">
+                        {activity.distance}
+                        <span className="text-sm font-normal text-slate-500 ml-1">
+                          km
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 uppercase tracking-wider">
+                        Distance
+                      </div>
+                    </div>
+                  )}
+                  {activity.difficulty && (
+                    <div className="text-center p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                      <div className="text-lg font-medium text-slate-900 mb-1 capitalize">
+                        {activity.difficulty}
+                      </div>
+                      <div className="text-xs text-slate-500 uppercase tracking-wider">
+                        Difficulty
+                      </div>
+                    </div>
+                  )}
+                  {activity.equipment && (
+                    <div className="text-center p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                      <div className="text-lg font-medium text-slate-900 mb-1">
+                        {activity.equipment}
+                      </div>
+                      <div className="text-xs text-slate-500 uppercase tracking-wider">
+                        Equipment
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Participants List */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-slate-900">
+                  Who's Going
+                </h3>
+                <span className="text-sm text-slate-500">
+                  {currentCount} {currentCount === 1 ? "person" : "people"}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {/* Always show organizer first */}
                 {activity.organizer && (
-                  <div className="flex items-center gap-3 text-slate-600">
-                    <User size={18} className="text-coral-500" />
-                    <span>Organized by {activity.organizer.full_name}</span>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-100">
+                    <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center font-medium text-amber-700">
+                      {activity.organizer.full_name?.charAt(0) || "?"}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-900">
+                          {activity.organizer.full_name}
+                        </span>
+                        <span className="text-xs text-amber-700 bg-amber-200 px-2 py-0.5 rounded-full font-medium">
+                          Organizer
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show other participants */}
+                {activity.participants &&
+                  activity.participants.length > 0 &&
+                  activity.participants
+                    .filter(
+                      (participant) =>
+                        participant.full_name !== activity.organizer?.full_name
+                    )
+                    .slice(0, 5)
+                    .map((participant, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-medium text-slate-600">
+                          {participant.full_name?.charAt(0) || "?"}
+                        </div>
+                        <span className="font-medium text-slate-900">
+                          {participant.full_name}
+                        </span>
+                      </div>
+                    ))}
+
+                {/* Show "more participants" if needed */}
+                {activity.participants &&
+                  activity.participants.filter(
+                    (p) => p.full_name !== activity.organizer?.full_name
+                  ).length > 5 && (
+                    <div className="text-center pt-2">
+                      <span className="text-sm text-slate-500">
+                        +
+                        {activity.participants.filter(
+                          (p) => p.full_name !== activity.organizer?.full_name
+                        ).length - 5}{" "}
+                        more participants
+                      </span>
+                    </div>
+                  )}
+
+                {/* Empty state when only organizer */}
+                {(!activity.participants ||
+                  activity.participants.length === 0 ||
+                  activity.participants.every(
+                    (p) => p.full_name === activity.organizer?.full_name
+                  )) && (
+                  <div className="text-center py-4 text-slate-500 text-sm">
+                    {isHost
+                      ? "You're the first one! Invite your mates to join."
+                      : "Be the first to join this activity!"}
                   </div>
                 )}
               </div>
             </div>
           </div>
-
-          {/* Description */}
-          {activity.description && (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-slate-800 mb-3">
-                Description
-              </h3>
-              <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
-                {activity.description}
-              </p>
-            </div>
-          )}
-
-          {/* Additional Details */}
-          {(activity.distance || activity.difficulty || activity.equipment) && (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-slate-800 mb-3">
-                Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {activity.distance && (
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-sm text-slate-500 mb-1">Distance</div>
-                    <div className="font-medium text-slate-800">
-                      {activity.distance} km
-                    </div>
-                  </div>
-                )}
-                {activity.difficulty && (
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-sm text-slate-500 mb-1">
-                      Difficulty
-                    </div>
-                    <div className="font-medium text-slate-800 capitalize">
-                      {activity.difficulty}
-                    </div>
-                  </div>
-                )}
-                {activity.equipment && (
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-sm text-slate-500 mb-1">Equipment</div>
-                    <div className="font-medium text-slate-800">
-                      {activity.equipment}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Participants List */}
-          {activity.participants && activity.participants.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-slate-800 mb-3">
-                Who's Going
-              </h3>
-              <div className="flex flex-wrap gap-3">
-                {activity.participants.slice(0, 8).map((participant, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2"
-                  >
-                    <div className="w-6 h-6 bg-coral-100 rounded-full flex items-center justify-center text-xs font-medium text-coral-700">
-                      {participant.full_name?.charAt(0) || "?"}
-                    </div>
-                    <span className="text-sm text-slate-700">
-                      {participant.full_name}
-                    </span>
-                  </div>
-                ))}
-                {activity.participants.length > 8 && (
-                  <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                    <span className="text-sm text-slate-500">
-                      +{activity.participants.length - 8} more
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-gray-100 bg-gray-50">
+        <div className="bg-white border-t border-gray-100 p-6">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-slate-500">
-              {currentCount || 0} / {activity.max_participants || "∞"}{" "}
-              participants
+            <div className="flex items-center gap-6">
+              <div className="text-sm text-slate-600">
+                <span className="font-medium">{currentCount || 0}</span>
+                {activity.max_participants && (
+                  <> of {activity.max_participants}</>
+                )}{" "}
+                joined
+              </div>
+
+              {/* Minimal capacity indicator */}
+              {activity.max_participants && (
+                <div className="flex-1 max-w-24">
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div
+                      className="bg-coral-500 h-1.5 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min(
+                          ((currentCount || 0) / activity.max_participants) *
+                            100,
+                          100
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
               {isHost ? (
-                <span className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-medium">
-                  You're the host
-                </span>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-700 rounded-full font-medium border border-amber-100">
+                  <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                  Host
+                </div>
               ) : joined ? (
                 <div className="flex items-center gap-3">
-                  <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium flex items-center gap-2">
-                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 text-green-700 rounded-full font-medium border border-green-100">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                     Joined
-                  </span>
+                  </div>
                   <button
                     onClick={onLeave}
                     disabled={loading}
-                    className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 rounded-lg font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                    className="px-4 py-2.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-full font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border border-gray-200 hover:border-red-200"
                   >
-                    <UserMinus size={16} />
                     {loading ? "Leaving..." : "Leave"}
                   </button>
                 </div>
@@ -293,10 +387,19 @@ export default function ActivityModal({
                     (activity.max_participants &&
                       currentCount >= activity.max_participants)
                   }
-                  className="px-6 py-2 bg-coral-500 hover:bg-coral-600 text-white rounded-lg font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-8 py-3 bg-coral-500 hover:bg-coral-600 text-white rounded-full font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow-md"
                 >
-                  <UserPlus size={16} />
-                  {loading ? "Joining..." : "Join Activity"}
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Joining...
+                    </div>
+                  ) : activity.max_participants &&
+                    currentCount >= activity.max_participants ? (
+                    "Activity Full"
+                  ) : (
+                    "Join Activity"
+                  )}
                 </button>
               )}
             </div>

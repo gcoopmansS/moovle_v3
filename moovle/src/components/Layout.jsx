@@ -143,7 +143,12 @@ export default function Layout() {
           .select(
             `
             *,
-            profiles:creator_id(full_name, avatar_url)
+            profiles:creator_id(full_name, avatar_url),
+            activity_participants(
+              id,
+              user_id,
+              profiles(full_name, avatar_url)
+            )
           `
           )
           .eq("id", activityId)
@@ -356,9 +361,28 @@ export default function Layout() {
         return;
       }
 
-      // Close modal after successful join
-      setActivityModalOpen(false);
-      setSelectedActivity(null);
+      // Refresh the activity data to show updated participants
+      const { data: updatedActivity, error: fetchError } = await supabase
+        .from("activities")
+        .select(
+          `
+          *,
+          profiles:creator_id(full_name, avatar_url),
+          activity_participants(
+            id,
+            user_id,
+            profiles(full_name, avatar_url)
+          )
+        `
+        )
+        .eq("id", activity.id)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching updated activity:", fetchError);
+      } else if (updatedActivity) {
+        setSelectedActivity(updatedActivity);
+      }
     } catch (err) {
       console.error("Error joining activity:", err);
     } finally {
@@ -383,9 +407,28 @@ export default function Layout() {
         return;
       }
 
-      // Close modal after successful leave
-      setActivityModalOpen(false);
-      setSelectedActivity(null);
+      // Refresh the activity data to show updated participants
+      const { data: updatedActivity, error: fetchError } = await supabase
+        .from("activities")
+        .select(
+          `
+          *,
+          profiles:creator_id(full_name, avatar_url),
+          activity_participants(
+            id,
+            user_id,
+            profiles(full_name, avatar_url)
+          )
+        `
+        )
+        .eq("id", activity.id)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching updated activity:", fetchError);
+      } else if (updatedActivity) {
+        setSelectedActivity(updatedActivity);
+      }
     } catch (err) {
       console.error("Error leaving activity:", err);
     } finally {
@@ -619,14 +662,32 @@ export default function Layout() {
           {selectedActivity &&
             (() => {
               const isHost = selectedActivity.creator_id === user.id;
-              // For simplicity, assume not joined since we don't fetch this data globally
-              // The modal will still show the correct join/leave buttons
-              const joined = false;
-              const currentCount = 1; // Host counts as 1, simplified for global modal
+              // Check if current user is in participants
+              const joined =
+                selectedActivity.activity_participants?.some(
+                  (participant) => participant.user_id === user.id
+                ) || false;
+              // Get current participant count - add 1 for host if they're not already in participants
+              const participantCount =
+                selectedActivity.activity_participants?.length || 0;
+              const hostInParticipants =
+                selectedActivity.activity_participants?.some(
+                  (participant) =>
+                    participant.user_id === selectedActivity.creator_id
+                );
+              const currentCount =
+                participantCount + (hostInParticipants ? 0 : 1);
 
               return (
                 <ActivityModal
-                  activity={selectedActivity}
+                  activity={{
+                    ...selectedActivity,
+                    organizer: selectedActivity.profiles,
+                    participants:
+                      selectedActivity.activity_participants?.map(
+                        (p) => p.profiles
+                      ) || [],
+                  }}
                   open={activityModalOpen}
                   onClose={() => {
                     setActivityModalOpen(false);
