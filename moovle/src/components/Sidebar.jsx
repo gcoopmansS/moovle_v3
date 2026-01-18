@@ -8,7 +8,7 @@ export default function Sidebar() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/login");
+    navigate("/");
   };
 
   const getInitial = () => {
@@ -35,7 +35,7 @@ export default function Sidebar() {
       <nav className="flex-1 px-4">
         {/* eslint-disable-next-line no-unused-vars */}
         <NavLink
-          to="/feed"
+          to="/app/feed"
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
               isActive
@@ -48,7 +48,7 @@ export default function Sidebar() {
           <span className="font-medium">Feed</span>
         </NavLink>
         <NavLink
-          to="/agenda"
+          to="/app/agenda"
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
               isActive
@@ -61,7 +61,7 @@ export default function Sidebar() {
           <span className="font-medium">Agenda</span>
         </NavLink>
         <NavLink
-          to="/mates"
+          to="/app/mates"
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
               isActive
@@ -79,7 +79,7 @@ export default function Sidebar() {
       {/* New Activity Button */}
       <div className="px-4 mb-6">
         <NavLink
-          to="/create-activity"
+          to="/app/create-activity"
           className="flex items-center justify-center gap-2 w-full bg-slate-800 text-white py-3 px-4 rounded-lg hover:bg-slate-700 transition-colors"
         >
           <Plus size={20} />
@@ -90,7 +90,7 @@ export default function Sidebar() {
       {/* User Profile */}
       <div className="border-t border-gray-100">
         <NavLink
-          to="/profile"
+          to="/app/profile"
           className="px-4 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
         >
           <div className="w-10 h-10 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">

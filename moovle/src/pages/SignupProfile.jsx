@@ -31,7 +31,7 @@ export default function SignupProfile() {
 
   const handleSportToggle = (sport) => {
     setFavoriteSports((prev) =>
-      prev.includes(sport) ? prev.filter((s) => s !== sport) : [...prev, sport]
+      prev.includes(sport) ? prev.filter((s) => s !== sport) : [...prev, sport],
     );
   };
 
@@ -60,7 +60,7 @@ export default function SignupProfile() {
         bio,
       });
       if (error) throw error;
-      navigate("/");
+      navigate("/app/feed");
     } catch (err) {
       setError(err.message || "Something went wrong");
     } finally {

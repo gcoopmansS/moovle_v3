@@ -29,7 +29,7 @@ export default function Login() {
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        navigate("/");
+        navigate("/app/feed");
       }
     } catch (err) {
       setError(err.message);

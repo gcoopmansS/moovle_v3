@@ -79,7 +79,7 @@ export default function CreateActivity() {
             receiver_id,
             requester:profiles!requester_id(id, full_name, avatar_url),
             receiver:profiles!receiver_id(id, full_name, avatar_url)
-          `
+          `,
           )
           .eq("status", "accepted")
           .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
@@ -144,7 +144,7 @@ export default function CreateActivity() {
 
     if (visibility === "invite_only" && selectedInvites.length === 0) {
       setError(
-        "Please select at least one friend to invite for invite-only activities"
+        "Please select at least one friend to invite for invite-only activities",
       );
       return;
     }
@@ -209,7 +209,7 @@ export default function CreateActivity() {
                 user.id,
                 userName,
                 activityData.id,
-                title
+                title,
               );
             }
           });
@@ -218,7 +218,7 @@ export default function CreateActivity() {
         }
       }
 
-      navigate("/");
+      navigate("/app/feed");
     } catch {
       setError("Failed to create activity. Please try again.");
     } finally {

@@ -16,7 +16,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // If profile is missing city or favorite_sports, redirect to signup-profile

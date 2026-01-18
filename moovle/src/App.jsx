@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
 import Agenda from "./pages/Agenda";
@@ -39,17 +40,45 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup-profile" element={<SignupProfile />} />
+      {/* Public routes */}
+      <Route
+        path="/landing"
+        element={!user ? <Landing /> : <Navigate to="/feed" replace />}
+      />
+      <Route
+        path="/login"
+        element={!user ? <Login /> : <Navigate to="/feed" replace />}
+      />
+
+      {/* Redirect root to landing for unauthenticated users */}
       <Route
         path="/"
+        element={!user ? <Landing /> : <Navigate to="/app/feed" replace />}
+      />
+
+      {/* Redirect old routes to new structure for authenticated users */}
+      <Route path="/feed" element={<Navigate to="/app/feed" replace />} />
+      <Route path="/agenda" element={<Navigate to="/app/agenda" replace />} />
+      <Route path="/mates" element={<Navigate to="/app/mates" replace />} />
+      <Route
+        path="/create-activity"
+        element={<Navigate to="/app/create-activity" replace />}
+      />
+      <Route path="/profile" element={<Navigate to="/app/profile" replace />} />
+
+      {/* Profile setup route */}
+      <Route path="/signup-profile" element={<SignupProfile />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/app"
         element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/feed" replace />} />
+        <Route index element={<Navigate to="/app/feed" replace />} />
         <Route path="feed" element={<Feed />} />
         <Route path="agenda" element={<Agenda />} />
         <Route path="mates" element={<Mates />} />
