@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
 import SuggestedMatesCarousel from "../components/SuggestedMatesCarousel";
 import EmptyState from "../components/EmptyState";
@@ -22,6 +23,7 @@ import { notifyMateRequest, notifyMateAccepted } from "../lib/notifications";
 export default function Mates() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("discover");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -390,9 +392,9 @@ export default function Mates() {
       if (error) throw error;
 
       showToast({
-        type: 'success',
-        title: 'Mate Request Sent!',
-        message: 'Your mate request has been sent successfully.'
+        type: "success",
+        title: "Mate Request Sent!",
+        message: "Your mate request has been sent successfully.",
       });
 
       // Send notification to receiver
@@ -406,9 +408,9 @@ export default function Mates() {
     } catch (error) {
       console.error("Error sending mate request:", error);
       showToast({
-        type: 'error',
-        title: 'Failed to Send Request',
-        message: 'Could not send mate request. Please try again.'
+        type: "error",
+        title: "Failed to Send Request",
+        message: "Could not send mate request. Please try again.",
       });
     } finally {
       setActionLoading(null);
@@ -554,9 +556,24 @@ export default function Mates() {
 
       {activeTab === "discover" && (
         <div className="mb-8">
-          <h3 className="text-base font-semibold text-slate-700 mb-3">
-            Suggested mates
-          </h3>
+          {/* Suggested Mates Header with Trust Building */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-base font-semibold text-slate-700">
+                Suggested mates
+              </h3>
+              <button
+                onClick={() => navigate("/app/profile")}
+                className="text-sm text-coral-500 hover:text-coral-600 font-medium cursor-pointer"
+              >
+                Improve suggestions
+              </button>
+            </div>
+            <p className="text-sm text-slate-600">
+              Based on your location and favorite sports
+            </p>
+          </div>
+
           <SuggestedMatesCarousel
             items={suggestedMates.map((sugg) => ({
               ...sugg,
