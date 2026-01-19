@@ -150,17 +150,17 @@ export default function Agenda() {
       // Rollback on error
       await fetchActivities();
       showToast({
-        type: 'error',
-        title: 'Failed to Leave',
-        message: 'Could not leave the activity. Please try again.'
+        type: "error",
+        title: "Failed to Leave",
+        message: "Could not leave the activity. Please try again.",
       });
     } else {
       showToast({
-        type: 'success',
-        title: 'Left Activity',
-        message: `You've left ${activity.title}.`
+        type: "success",
+        title: "Left Activity",
+        message: `You've left ${activity.title}.`,
       });
-      
+
       // Send notification to activity creator if leave was successful
       if (activity.creator_id !== user.id) {
         const userName =

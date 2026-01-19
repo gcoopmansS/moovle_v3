@@ -93,17 +93,17 @@ export default function Feed() {
     if (error) {
       console.error("Error joining activity:", error);
       showToast({
-        type: 'error',
-        title: 'Failed to Join',
-        message: 'Could not join the activity. Please try again.'
+        type: "error",
+        title: "Failed to Join",
+        message: "Could not join the activity. Please try again.",
       });
     } else {
       showToast({
-        type: 'success',
-        title: 'Joined Activity!',
-        message: `You've successfully joined ${activity.title}.`
+        type: "success",
+        title: "Joined Activity!",
+        message: `You've successfully joined ${activity.title}.`,
       });
-      
+
       // Send notification to activity creator if join was successful
       if (activity.creator_id !== user.id) {
         const userName =
@@ -139,17 +139,17 @@ export default function Feed() {
     if (error) {
       console.error("Error leaving activity:", error);
       showToast({
-        type: 'error',
-        title: 'Failed to Leave',
-        message: 'Could not leave the activity. Please try again.'
+        type: "error",
+        title: "Failed to Leave",
+        message: "Could not leave the activity. Please try again.",
       });
     } else {
       showToast({
-        type: 'success',
-        title: 'Left Activity',
-        message: `You've left ${activity.title}.`
+        type: "success",
+        title: "Left Activity",
+        message: `You've left ${activity.title}.`,
       });
-      
+
       // Send notification to activity creator if leave was successful
       if (activity.creator_id !== user.id) {
         const userName =

@@ -58,27 +58,31 @@ export default function CreateActivity() {
   // Form validation functions
   const validateField = (fieldName, value) => {
     switch (fieldName) {
-      case 'title':
-        return !value?.trim() ? 'Title is required' : null;
-      case 'dateTime':
-        if (!value) return 'Date and time is required';
-        if (new Date(value) <= new Date()) return 'Date must be in the future';
+      case "title":
+        return !value?.trim() ? "Title is required" : null;
+      case "dateTime":
+        if (!value) return "Date and time is required";
+        if (new Date(value) <= new Date()) return "Date must be in the future";
         return null;
-      case 'location':
-        return !value?.trim() ? 'Location is required' : null;
-      case 'duration':
-        if (durationType === 'duration' && (!duration || duration < 1)) {
-          return 'Duration must be at least 1 minute';
+      case "location":
+        return !value?.trim() ? "Location is required" : null;
+      case "duration":
+        if (durationType === "duration" && (!duration || duration < 1)) {
+          return "Duration must be at least 1 minute";
         }
         return null;
-      case 'distance':
-        if (durationType === 'distance' && supportsDistance && (!distance || distance < 1)) {
-          return 'Distance must be at least 1 km';
+      case "distance":
+        if (
+          durationType === "distance" &&
+          supportsDistance &&
+          (!distance || distance < 1)
+        ) {
+          return "Distance must be at least 1 km";
         }
         return null;
-      case 'invites':
-        if (visibility === 'invite_only' && selectedInvites.length === 0) {
-          return 'Please select at least one friend to invite';
+      case "invites":
+        if (visibility === "invite_only" && selectedInvites.length === 0) {
+          return "Please select at least one friend to invite";
         }
         return null;
       default:
@@ -88,20 +92,20 @@ export default function CreateActivity() {
 
   const validateForm = () => {
     const errors = {};
-    
+
     // Required field validations
-    errors.title = validateField('title', title);
-    errors.dateTime = validateField('dateTime', dateTime);
-    errors.location = validateField('location', location);
-    errors.duration = validateField('duration', duration);
-    errors.distance = validateField('distance', distance);
-    errors.invites = validateField('invites', selectedInvites);
-    
+    errors.title = validateField("title", title);
+    errors.dateTime = validateField("dateTime", dateTime);
+    errors.location = validateField("location", location);
+    errors.duration = validateField("duration", duration);
+    errors.distance = validateField("distance", distance);
+    errors.invites = validateField("invites", selectedInvites);
+
     // Remove null errors
-    Object.keys(errors).forEach(key => {
+    Object.keys(errors).forEach((key) => {
       if (!errors[key]) delete errors[key];
     });
-    
+
     return errors;
   };
 
@@ -112,14 +116,14 @@ export default function CreateActivity() {
 
   const handleFieldChange = (fieldName, value) => {
     // Mark field as touched
-    setTouchedFields(prev => ({ ...prev, [fieldName]: true }));
-    
+    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
+
     // Validate field and update errors
     if (hasSubmitted || touchedFields[fieldName]) {
       const fieldError = validateField(fieldName, value);
-      setFieldErrors(prev => ({
+      setFieldErrors((prev) => ({
         ...prev,
-        [fieldName]: fieldError
+        [fieldName]: fieldError,
       }));
     }
   };
@@ -202,9 +206,9 @@ export default function CreateActivity() {
       const newInvites = prev.includes(mateId)
         ? prev.filter((id) => id !== mateId)
         : [...prev, mateId];
-      
+
       // Trigger validation for invites
-      handleFieldChange('invites', newInvites);
+      handleFieldChange("invites", newInvites);
       return newInvites;
     });
   };
@@ -363,7 +367,7 @@ export default function CreateActivity() {
             value={title}
             onChange={(e) => {
               setTitle(e.target.value);
-              handleFieldChange('title', e.target.value);
+              handleFieldChange("title", e.target.value);
             }}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
           />
@@ -397,7 +401,7 @@ export default function CreateActivity() {
             value={dateTime}
             onChange={(e) => {
               setDateTime(e.target.value);
-              handleFieldChange('dateTime', e.target.value);
+              handleFieldChange("dateTime", e.target.value);
             }}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
           />
@@ -448,15 +452,18 @@ export default function CreateActivity() {
                   value={duration}
                   onChange={(e) => {
                     setDuration(Number(e.target.value));
-                    handleFieldChange('duration', Number(e.target.value));
+                    handleFieldChange("duration", Number(e.target.value));
                   }}
                   className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
                 />
                 <span className="text-slate-500 font-medium">min</span>
               </div>
-              {(hasSubmitted || touchedFields.duration) && fieldErrors.duration && (
-                <p className="text-red-500 text-sm mt-1">{fieldErrors.duration}</p>
-              )}
+              {(hasSubmitted || touchedFields.duration) &&
+                fieldErrors.duration && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {fieldErrors.duration}
+                  </p>
+                )}
             </div>
           )}
 
@@ -473,15 +480,18 @@ export default function CreateActivity() {
                   value={distance}
                   onChange={(e) => {
                     setDistance(e.target.value);
-                    handleFieldChange('distance', e.target.value);
+                    handleFieldChange("distance", e.target.value);
                   }}
                   className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
                 />
                 <span className="text-slate-500 font-medium">km</span>
               </div>
-              {(hasSubmitted || touchedFields.distance) && fieldErrors.distance && (
-                <p className="text-red-500 text-sm mt-1">{fieldErrors.distance}</p>
-              )}
+              {(hasSubmitted || touchedFields.distance) &&
+                fieldErrors.distance && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {fieldErrors.distance}
+                  </p>
+                )}
             </div>
           )}
         </div>
@@ -496,7 +506,7 @@ export default function CreateActivity() {
             onChange={(address, coords) => {
               setLocation(address);
               setLocationCoords(coords);
-              handleFieldChange('location', address);
+              handleFieldChange("location", address);
             }}
             placeholder="Search for a location..."
           />
@@ -579,10 +589,10 @@ export default function CreateActivity() {
                         setSelectedInvites([]);
                         setInviteSearchQuery("");
                         // Clear invite validation error
-                        setFieldErrors(prev => ({ ...prev, invites: null }));
+                        setFieldErrors((prev) => ({ ...prev, invites: null }));
                       } else {
                         // Trigger validation for invite_only
-                        handleFieldChange('invites', selectedInvites);
+                        handleFieldChange("invites", selectedInvites);
                       }
                     }}
                     className="sr-only"
@@ -807,8 +817,8 @@ export default function CreateActivity() {
           disabled={isSubmitting || !isFormValid()}
           className={`w-full py-4 rounded-xl font-semibold transition-colors ${
             isSubmitting || !isFormValid()
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-coral-500 text-white hover:bg-coral-600 cursor-pointer'
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-coral-500 text-white hover:bg-coral-600 cursor-pointer"
           }`}
         >
           {isSubmitting ? "Creating..." : "Create Activity"}

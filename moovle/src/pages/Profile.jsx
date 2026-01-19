@@ -112,9 +112,9 @@ export default function Profile() {
   const handleSave = async () => {
     if (!editForm.full_name.trim()) {
       showToast({
-        type: 'error',
-        title: 'Name Required',
-        message: 'Please enter your full name.'
+        type: "error",
+        title: "Name Required",
+        message: "Please enter your full name.",
       });
       return;
     }
@@ -125,15 +125,15 @@ export default function Profile() {
       if (error) {
         console.error("Error updating profile:", error);
         showToast({
-          type: 'error',
-          title: 'Failed to Update',
-          message: 'Could not update your profile. Please try again.'
+          type: "error",
+          title: "Failed to Update",
+          message: "Could not update your profile. Please try again.",
         });
       } else {
         showToast({
-          type: 'success',
-          title: 'Profile Updated!',
-          message: 'Your profile has been updated successfully.'
+          type: "success",
+          title: "Profile Updated!",
+          message: "Your profile has been updated successfully.",
         });
         setSuccess(true);
         setIsEditing(false);
@@ -142,9 +142,9 @@ export default function Profile() {
     } catch (error) {
       console.error("Error:", error);
       showToast({
-        type: 'error',
-        title: 'Update Failed',
-        message: 'An unexpected error occurred. Please try again.'
+        type: "error",
+        title: "Update Failed",
+        message: "An unexpected error occurred. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -160,7 +160,7 @@ export default function Profile() {
   const addSport = (sportId) => {
     // Check if sport already exists (case-insensitive)
     const alreadyExists = editForm.favorite_sports.some(
-      (existingSport) => existingSport.toLowerCase() === sportId.toLowerCase()
+      (existingSport) => existingSport.toLowerCase() === sportId.toLowerCase(),
     );
 
     if (!alreadyExists) {
@@ -347,7 +347,7 @@ export default function Profile() {
                   {editForm.favorite_sports.map((sportId) => {
                     // Case-insensitive matching
                     const sport = sports.find(
-                      (s) => s.id.toLowerCase() === sportId.toLowerCase()
+                      (s) => s.id.toLowerCase() === sportId.toLowerCase(),
                     );
                     // Debug logging
                     if (!sport) {
@@ -355,7 +355,7 @@ export default function Profile() {
                         "Sport not found for ID:",
                         sportId,
                         "Available sports:",
-                        sports.map((s) => s.id)
+                        sports.map((s) => s.id),
                       );
                     }
                     return (
@@ -394,8 +394,8 @@ export default function Profile() {
                           !editForm.favorite_sports.some(
                             (existingSport) =>
                               existingSport.toLowerCase() ===
-                              sport.id.toLowerCase()
-                          )
+                              sport.id.toLowerCase(),
+                          ),
                       )
                       .map((sport) => (
                         <button
@@ -418,12 +418,12 @@ export default function Profile() {
                   <div className="flex flex-wrap gap-2">
                     {profile.favorite_sports
                       .filter(
-                        (sportId) => sportId && typeof sportId === "string"
+                        (sportId) => sportId && typeof sportId === "string",
                       )
                       .map((sportId) => {
                         // Case-insensitive matching
                         const sport = sports.find(
-                          (s) => s.id.toLowerCase() === sportId.toLowerCase()
+                          (s) => s.id.toLowerCase() === sportId.toLowerCase(),
                         );
                         // Debug logging
                         if (!sport) {
@@ -431,7 +431,7 @@ export default function Profile() {
                             "Sport not found for ID:",
                             sportId,
                             "Available sports:",
-                            sports.map((s) => s.id)
+                            sports.map((s) => s.id),
                           );
                         }
                         return (
