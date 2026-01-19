@@ -11,12 +11,14 @@ import {
   Trash2,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import { sports } from "../config/sports";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { profile, user, updateProfile } = useAuth();
+  const { showToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -109,7 +111,11 @@ export default function Profile() {
 
   const handleSave = async () => {
     if (!editForm.full_name.trim()) {
-      alert("Name is required");
+      showToast({
+        type: "error",
+        title: "Name Required",
+        message: "Please enter your full name.",
+      });
       return;
     }
 
@@ -118,15 +124,28 @@ export default function Profile() {
       const { error } = await updateProfile(editForm);
       if (error) {
         console.error("Error updating profile:", error);
-        alert("Failed to update profile");
+        showToast({
+          type: "error",
+          title: "Failed to Update",
+          message: "Could not update your profile. Please try again.",
+        });
       } else {
+        showToast({
+          type: "success",
+          title: "Profile Updated!",
+          message: "Your profile has been updated successfully.",
+        });
         setSuccess(true);
         setIsEditing(false);
         setTimeout(() => setSuccess(false), 3000);
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("An error occurred");
+      showToast({
+        type: "error",
+        title: "Update Failed",
+        message: "An unexpected error occurred. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -141,7 +160,7 @@ export default function Profile() {
   const addSport = (sportId) => {
     // Check if sport already exists (case-insensitive)
     const alreadyExists = editForm.favorite_sports.some(
-      (existingSport) => existingSport.toLowerCase() === sportId.toLowerCase()
+      (existingSport) => existingSport.toLowerCase() === sportId.toLowerCase(),
     );
 
     if (!alreadyExists) {
@@ -328,7 +347,7 @@ export default function Profile() {
                   {editForm.favorite_sports.map((sportId) => {
                     // Case-insensitive matching
                     const sport = sports.find(
-                      (s) => s.id.toLowerCase() === sportId.toLowerCase()
+                      (s) => s.id.toLowerCase() === sportId.toLowerCase(),
                     );
                     // Debug logging
                     if (!sport) {
@@ -336,7 +355,7 @@ export default function Profile() {
                         "Sport not found for ID:",
                         sportId,
                         "Available sports:",
-                        sports.map((s) => s.id)
+                        sports.map((s) => s.id),
                       );
                     }
                     return (
@@ -375,8 +394,8 @@ export default function Profile() {
                           !editForm.favorite_sports.some(
                             (existingSport) =>
                               existingSport.toLowerCase() ===
-                              sport.id.toLowerCase()
-                          )
+                              sport.id.toLowerCase(),
+                          ),
                       )
                       .map((sport) => (
                         <button
@@ -399,12 +418,12 @@ export default function Profile() {
                   <div className="flex flex-wrap gap-2">
                     {profile.favorite_sports
                       .filter(
-                        (sportId) => sportId && typeof sportId === "string"
+                        (sportId) => sportId && typeof sportId === "string",
                       )
                       .map((sportId) => {
                         // Case-insensitive matching
                         const sport = sports.find(
-                          (s) => s.id.toLowerCase() === sportId.toLowerCase()
+                          (s) => s.id.toLowerCase() === sportId.toLowerCase(),
                         );
                         // Debug logging
                         if (!sport) {
@@ -412,7 +431,7 @@ export default function Profile() {
                             "Sport not found for ID:",
                             sportId,
                             "Available sports:",
-                            sports.map((s) => s.id)
+                            sports.map((s) => s.id),
                           );
                         }
                         return (

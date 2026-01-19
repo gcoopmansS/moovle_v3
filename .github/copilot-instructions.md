@@ -97,6 +97,36 @@ Code kopiëren
 
 ---
 
+## Database workflow (Supabase CLI + migrations)
+
+- We manage DB schema via **Supabase CLI migrations** committed to git.
+- Do NOT suggest making schema/policy changes manually in the Supabase dashboard (except for viewing/debugging).
+- When a DB change is needed:
+  1. Create a migration: `npx supabase migration new <name>`
+  2. Write SQL changes in the new migration file under `supabase/migrations/`
+  3. Apply to the currently linked project: `npx supabase db push`
+  4. Commit the migration files
+
+- We have multiple Supabase projects (dev/beta/prod) and switch them via:
+  `npx supabase link --project-ref <REF>`
+- Frontend uses env vars (Vite):
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
+    Do not hardcode keys in code.
+- Before running DB commands, confirm which project is linked (dev vs beta vs prod).
+- Never apply hotfixes directly to beta/prod without creating a matching migration.
+
+## Security (RLS-first)
+
+- Assume the client is untrusted. All access control must be enforced with **RLS policies** in Postgres.
+- Never rely on hiding UI elements as security.
+- When adding new tables or access patterns, propose/update RLS policies and indexes.
+
+## Realtime & notifications
+
+- Prefer Supabase Realtime subscriptions for notifications over polling.
+- Notifications should be actionable (link to activity/user) and support unread badge + mark-as-read.
+
 ## Coding standards
 
 - Use JavaScript (not TypeScript) unless explicitly requested
@@ -106,6 +136,22 @@ Code kopiëren
 - Keep logic simple and testable
 
 ---
+
+## Scope control
+
+- Keep changes minimal and scoped to the requested feature.
+- Avoid refactoring unrelated files.
+- If you need a new component, add it under `src/components/` and keep it focused.
+
+## Performance
+
+- Prefer batched queries (e.g. `.in(...)`) over N+1 calls.
+- Add indexes for frequently filtered columns (user_id, activity_id, created_at/joined_at).
+
+## Dependencies
+
+- Do not add new npm dependencies (UI libs, swiper/carousel libs, date libs) unless explicitly requested.
+- Prefer small local components and native browser APIs.
 
 ## Tailwind & UI conventions
 

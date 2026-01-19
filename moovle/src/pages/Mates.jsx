@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import Modal from "../components/Modal";
 import SuggestedMatesCarousel from "../components/SuggestedMatesCarousel";
+import EmptyState from "../components/EmptyState";
 import { buildMateSuggestions } from "../lib/mateSuggestions";
 import {
   Search,
@@ -11,14 +13,21 @@ import {
   Clock,
   UserMinus,
   Loader2,
+  UserSearch,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import { notifyMateRequest, notifyMateAccepted } from "../lib/notifications";
 
 export default function Mates() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("discover");
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(
+    location.state?.activeTab || "discover",
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -58,7 +67,7 @@ export default function Mates() {
           created_at,
           requester:profiles!requester_id(id, full_name, avatar_url, city),
           receiver:profiles!receiver_id(id, full_name, avatar_url, city)
-        `
+        `,
         )
         .eq("status", "accepted")
         .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
@@ -81,7 +90,7 @@ export default function Mates() {
           requester_id,
           created_at,
           requester:profiles!requester_id(id, full_name, avatar_url, city)
-        `
+        `,
         )
         .eq("receiver_id", user.id)
         .eq("status", "pending");
@@ -98,7 +107,7 @@ export default function Mates() {
           receiver_id,
           created_at,
           receiver:profiles!receiver_id(id, full_name, avatar_url, city)
-        `
+        `,
         )
         .eq("requester_id", user.id)
         .eq("status", "pending");
@@ -129,7 +138,7 @@ export default function Mates() {
       let { data: candidates, error: candErr } = await supabase
         .from("profiles")
         .select(
-          "id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports, country"
+          "id, full_name, avatar_url, city, city_lat, city_lng, favorite_sports, country",
         )
         .neq("id", user.id)
         .match(countryFilter)
@@ -152,7 +161,7 @@ export default function Mates() {
         }
       });
       const filteredCandidates = candidates.filter(
-        (c) => !excludeIds.has(c.id)
+        (c) => !excludeIds.has(c.id),
       );
 
       // 5. User’s recent sports (favorite_sports or recent activities)
@@ -163,7 +172,7 @@ export default function Mates() {
       if (myRecentSports.length === 0) {
         // fallback: last 30 days activities
         const since = new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
+          Date.now() - 30 * 24 * 60 * 60 * 1000,
         ).toISOString();
         const { data: myActs } = await supabase
           .from("activity_participants")
@@ -181,7 +190,7 @@ export default function Mates() {
       const myMateIds = mateEdges
         .filter((e) => e.status === "accepted")
         .map((e) =>
-          e.requester_id === user.id ? e.receiver_id : e.requester_id
+          e.requester_id === user.id ? e.receiver_id : e.requester_id,
         );
       let mutualMap = {};
       if (myMateIds.length > 0) {
@@ -191,7 +200,7 @@ export default function Mates() {
           .or(
             myMateIds
               .map((id) => `requester_id.eq.${id},receiver_id.eq.${id}`)
-              .join(",")
+              .join(","),
           )
           .eq("status", "accepted");
         if (matesOfMates) {
@@ -212,13 +221,13 @@ export default function Mates() {
       let candidateStats = {};
       if (candidateIds.length > 0) {
         const since = new Date(
-          Date.now() - 90 * 24 * 60 * 60 * 1000
+          Date.now() - 90 * 24 * 60 * 60 * 1000,
         ).toISOString();
         // Fetch activities created by candidates
         const { data: actsCreated } = await supabase
           .from("activities")
           .select(
-            "id, creator_id, sport, date_time, location_lat, location_lng"
+            "id, creator_id, sport, date_time, location_lat, location_lng",
           )
           .in("creator_id", candidateIds)
           .gte("date_time", since);
@@ -226,7 +235,7 @@ export default function Mates() {
         const { data: actsJoined } = await supabase
           .from("activity_participants")
           .select(
-            "user_id, activity_id, status, activities(sport, date_time, location_lat, location_lng)"
+            "user_id, activity_id, status, activities(sport, date_time, location_lat, location_lng)",
           )
           .in("user_id", candidateIds)
           .eq("status", "joined")
@@ -234,7 +243,7 @@ export default function Mates() {
         // Build stats per candidate
         candidateIds.forEach((cid) => {
           const created = (actsCreated || []).filter(
-            (a) => a.creator_id === cid
+            (a) => a.creator_id === cid,
           );
           const joined = (actsJoined || []).filter((a) => a.user_id === cid);
           const recentSports = [
@@ -242,7 +251,7 @@ export default function Mates() {
               [
                 ...created.map((a) => a.sport),
                 ...joined.map((a) => a.activities?.sport),
-              ].filter(Boolean)
+              ].filter(Boolean),
             ),
           ];
           // Venues near me
@@ -264,7 +273,7 @@ export default function Mates() {
                   v.lat &&
                   v.lng &&
                   Math.abs(v.lat - me.city_lat) < 1 &&
-                  Math.abs(v.lng - me.city_lng) < 1 // quick filter
+                  Math.abs(v.lng - me.city_lng) < 1, // quick filter
               )
               .filter((v) => {
                 // precise filter
@@ -273,7 +282,7 @@ export default function Mates() {
                       me.city_lat,
                       me.city_lng,
                       v.lat,
-                      v.lng
+                      v.lng,
                     )
                   : 0;
                 return d <= 15;
@@ -360,7 +369,7 @@ export default function Mates() {
         ];
 
         const filtered = (data || []).filter(
-          (u) => !existingIds.includes(u.id)
+          (u) => !existingIds.includes(u.id),
         );
         setSearchResults(filtered);
       } catch (error) {
@@ -385,6 +394,12 @@ export default function Mates() {
 
       if (error) throw error;
 
+      showToast({
+        type: "success",
+        title: "Mate Request Sent!",
+        message: "Your mate request has been sent successfully.",
+      });
+
       // Send notification to receiver
       const userName = user.user_metadata?.full_name || "Someone";
       await notifyMateRequest(receiverId, user.id, userName);
@@ -395,6 +410,11 @@ export default function Mates() {
       setSearchResults([]);
     } catch (error) {
       console.error("Error sending mate request:", error);
+      showToast({
+        type: "error",
+        title: "Failed to Send Request",
+        message: "Could not send mate request. Please try again.",
+      });
     } finally {
       setActionLoading(null);
     }
@@ -499,7 +519,7 @@ export default function Mates() {
 
   // Filter mates based on search
   const filteredMates = mates.filter((m) =>
-    m.mate.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    m.mate.full_name?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -539,9 +559,24 @@ export default function Mates() {
 
       {activeTab === "discover" && (
         <div className="mb-8">
-          <h3 className="text-base font-semibold text-slate-700 mb-3">
-            Suggested mates
-          </h3>
+          {/* Suggested Mates Header with Trust Building */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-base font-semibold text-slate-700">
+                Suggested mates
+              </h3>
+              <button
+                onClick={() => navigate("/app/profile")}
+                className="text-sm text-coral-500 hover:text-coral-600 font-medium cursor-pointer"
+              >
+                Improve suggestions
+              </button>
+            </div>
+            <p className="text-sm text-slate-600">
+              Based on your location and favorite sports
+            </p>
+          </div>
+
           <SuggestedMatesCarousel
             items={suggestedMates.map((sugg) => ({
               ...sugg,
@@ -553,11 +588,28 @@ export default function Mates() {
             onAddMate={sendMateRequest}
           />
           {!loadingSuggestions && suggestedMates.length === 0 && (
-            <div className="text-slate-400 text-sm mt-6 text-center">
-              No suggestions yet.
-              <br />
-              Try adding your city and favorite sports to your profile, or
-              invite friends to Moovle!
+            <div className="mt-8">
+              <EmptyState
+                title="No mate suggestions yet"
+                description="Suggestions are based on shared sports interests, location proximity, and activity patterns. Complete your profile to get better matches!"
+                icon={UserSearch}
+                primaryAction={{
+                  label: "Complete Profile",
+                  to: "/app/profile",
+                }}
+                secondaryAction={{
+                  label: "Search People",
+                  onClick: () => {
+                    // Focus the search input
+                    const searchInput = document.querySelector(
+                      'input[placeholder*="Search for people"]',
+                    );
+                    if (searchInput) {
+                      searchInput.focus();
+                    }
+                  },
+                }}
+              />
             </div>
           )}
         </div>

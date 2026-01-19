@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Activity, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import { sports } from "../config/sports";
 import { notifyActivityJoined, notifyActivityLeft } from "../lib/notifications";
 import ActivityCard from "../components/ActivityCard";
+import EmptyState from "../components/EmptyState";
+import NudgeCard from "../components/NudgeCard";
 import Modal from "../components/Modal";
 
 const dateFilters = ["All", "Today", "Tomorrow", "This Week"];
@@ -22,6 +25,7 @@ const sportFilters = [
 
 export default function Feed() {
   const { profile, user } = useAuth();
+  const { showToast } = useToast();
   const [selectedDate, setSelectedDate] = useState("All");
   const [selectedSport, setSelectedSport] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,6 +34,9 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState({}); // { [activityId]: boolean }
   const [joinedIds, setJoinedIds] = useState([]); // [activityId]
+  const [invitedActivityIds, setInvitedActivityIds] = useState([]); // [activityId]
+  const [matesCount, setMatesCount] = useState(0);
+  const [createdActivitiesCount, setCreatedActivitiesCount] = useState(0);
 
   // Modal state for leave confirmation
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
@@ -40,6 +47,54 @@ export default function Feed() {
   useEffect(() => {
     fetchActivities();
     fetchJoinedActivities();
+    fetchNudgeData();
+
+    // Listen for activity state changes from the modal
+    const handleActivityStateChange = (event) => {
+      const { activityId, action, updatedActivity } = event.detail;
+
+      // Update the specific activity in our local state
+      setActivities((prev) =>
+        prev.map((activity) =>
+          activity.id === activityId
+            ? {
+                ...activity,
+                ...updatedActivity,
+                participants:
+                  updatedActivity.activity_participants?.map(
+                    (p) => p.profiles,
+                  ) || activity.participants,
+              }
+            : activity,
+        ),
+      );
+
+      // Update joined status based on action
+      if (action === "joined") {
+        setJoinedIds((prev) =>
+          prev.includes(activityId) ? prev : [...prev, activityId],
+        );
+      } else if (action === "left") {
+        setJoinedIds((prev) => prev.filter((id) => id !== activityId));
+      }
+
+      // Update participant count
+      const newParticipantCount =
+        (updatedActivity.activity_participants?.length || 1) - 1; // Subtract organizer
+      setParticipantCounts((prev) => ({
+        ...prev,
+        [activityId]: Math.max(0, newParticipantCount),
+      }));
+    };
+
+    window.addEventListener("activityStateChanged", handleActivityStateChange);
+
+    return () => {
+      window.removeEventListener(
+        "activityStateChanged",
+        handleActivityStateChange,
+      );
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedSport]);
 
@@ -52,7 +107,7 @@ export default function Feed() {
         .select("activity_id")
         .in(
           "activity_id",
-          activities.map((a) => a.id)
+          activities.map((a) => a.id),
         );
       if (!error && data) {
         // data: [{ activity_id, count }]
@@ -89,7 +144,18 @@ export default function Feed() {
 
     if (error) {
       console.error("Error joining activity:", error);
+      showToast({
+        type: "error",
+        title: "Failed to Join",
+        message: "Could not join the activity. Please try again.",
+      });
     } else {
+      showToast({
+        type: "success",
+        title: "Joined Activity!",
+        message: `You've successfully joined ${activity.title}.`,
+      });
+
       // Send notification to activity creator if join was successful
       if (activity.creator_id !== user.id) {
         const userName =
@@ -99,7 +165,7 @@ export default function Feed() {
           user.id,
           userName,
           activity.id,
-          activity.title
+          activity.title,
         );
       }
 
@@ -124,7 +190,18 @@ export default function Feed() {
 
     if (error) {
       console.error("Error leaving activity:", error);
+      showToast({
+        type: "error",
+        title: "Failed to Leave",
+        message: "Could not leave the activity. Please try again.",
+      });
     } else {
+      showToast({
+        type: "success",
+        title: "Left Activity",
+        message: `You've left ${activity.title}.`,
+      });
+
       // Send notification to activity creator if leave was successful
       if (activity.creator_id !== user.id) {
         const userName =
@@ -134,7 +211,7 @@ export default function Feed() {
           user.id,
           userName,
           activity.id,
-          activity.title
+          activity.title,
         );
       }
 
@@ -156,7 +233,7 @@ export default function Feed() {
           *,
           organizer:profiles!creator_id(id, full_name, avatar_url),
           participants:activity_participants(user_id, profiles(id, full_name, avatar_url))
-        `
+        `,
         )
         .eq("id", activityId)
         .single();
@@ -186,7 +263,7 @@ export default function Feed() {
         activityData.organizer.full_name.trim().length > 0
       ) {
         const alreadyIncluded = participants.some(
-          (p) => p.id === activityData.organizer.id
+          (p) => p.id === activityData.organizer.id,
         );
         if (!alreadyIncluded) {
           participants = [activityData.organizer, ...participants];
@@ -200,7 +277,7 @@ export default function Feed() {
 
       // Update the specific activity in state
       setActivities((prev) =>
-        prev.map((a) => (a.id === activityId ? activityData : a))
+        prev.map((a) => (a.id === activityId ? activityData : a)),
       );
 
       // Update participant count for this activity (exclude organizer since they're always included)
@@ -234,12 +311,38 @@ export default function Feed() {
     window.dispatchEvent(activityEvent);
   };
 
+  // Fetch data needed for nudge decisions
+  const fetchNudgeData = async () => {
+    if (!user) return;
+
+    try {
+      // Fetch mates count
+      const { data: matesData } = await supabase
+        .from("mates")
+        .select("id", { count: "exact" })
+        .eq("status", "accepted")
+        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+      setMatesCount(matesData?.length || 0);
+
+      // Fetch created activities count
+      const { data: activitiesData } = await supabase
+        .from("activities")
+        .select("id", { count: "exact" })
+        .eq("creator_id", user.id);
+
+      setCreatedActivitiesCount(activitiesData?.length || 0);
+    } catch (error) {
+      console.error("Error fetching nudge data:", error);
+    }
+  };
+
   const fetchActivities = async () => {
     setLoading(true);
     try {
       // First, get user's mate IDs for visibility filtering
       let mateIds = [];
-      let invitedActivityIds = [];
+      let userInvitedActivityIds = [];
 
       if (user) {
         // Fetch mates
@@ -251,7 +354,7 @@ export default function Feed() {
 
         if (matesData) {
           mateIds = matesData.map((m) =>
-            m.requester_id === user.id ? m.receiver_id : m.requester_id
+            m.requester_id === user.id ? m.receiver_id : m.requester_id,
           );
         }
 
@@ -263,9 +366,14 @@ export default function Feed() {
           .in("status", ["pending", "accepted"]);
 
         if (invitesData) {
-          invitedActivityIds = invitesData.map((invite) => invite.activity_id);
+          userInvitedActivityIds = invitesData.map(
+            (invite) => invite.activity_id,
+          );
         }
       }
+
+      // Store invited activity IDs in state for use in rendering
+      setInvitedActivityIds(userInvitedActivityIds);
 
       let query = supabase
         .from("activities")
@@ -274,7 +382,7 @@ export default function Feed() {
           *,
           organizer:profiles!creator_id(id, full_name, avatar_url),
           participants:activity_participants(user_id, profiles(id, full_name, avatar_url))
-        `
+        `,
         )
         .gte("date_time", new Date().toISOString())
         .order("date_time", { ascending: true });
@@ -322,7 +430,7 @@ export default function Feed() {
               return mateIds.includes(activity.creator_id);
             case "invite_only":
               // For invite-only activities, check if user was invited
-              return invitedActivityIds.includes(activity.id);
+              return userInvitedActivityIds.includes(activity.id);
             default:
               return true; // Default to public if visibility is not set
           }
@@ -345,7 +453,7 @@ export default function Feed() {
             activity.organizer.full_name.trim().length > 0
           ) {
             const alreadyIncluded = participants.some(
-              (p) => p.id === activity.organizer.id
+              (p) => p.id === activity.organizer.id,
             );
             if (!alreadyIncluded) {
               participants = [activity.organizer, ...participants];
@@ -363,8 +471,53 @@ export default function Feed() {
   };
 
   const filteredActivities = activities.filter((activity) =>
-    activity.title.toLowerCase().includes(searchQuery.toLowerCase())
+    activity.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  // Determine which nudge to show (priority order)
+  const getNudgeToShow = () => {
+    if (!user || !profile) return null;
+
+    // 1. Check if profile.favorite_sports is empty
+    if (!profile.favorite_sports || profile.favorite_sports.length === 0) {
+      return {
+        nudgeKey: "favorite_sports",
+        title: "Add your favorite sports",
+        description:
+          "Tell us what sports you love to get better activity suggestions tailored for you.",
+        ctaText: "Add favorite sports",
+        ctaTo: "/app/profile",
+      };
+    }
+
+    // 2. Check if user has 0 mates
+    if (matesCount === 0) {
+      return {
+        nudgeKey: "find_mates",
+        title: "Find mates near you",
+        description:
+          "Connect with other sports enthusiasts in your area to join activities together.",
+        ctaText: "Find mates",
+        ctaTo: "/app/mates",
+      };
+    }
+
+    // 3. Check if user has created 0 activities
+    if (createdActivitiesCount === 0) {
+      return {
+        nudgeKey: "create_activity",
+        title: "Create your first activity",
+        description:
+          "Be the host! Create an activity and invite others to join you.",
+        ctaText: "Create activity",
+        ctaTo: "/app/create-activity",
+      };
+    }
+
+    return null;
+  };
+
+  const currentNudge = getNudgeToShow();
 
   return (
     <div className="w-full">
@@ -446,6 +599,18 @@ export default function Feed() {
         ))}
       </div>
 
+      {/* Nudge Component */}
+      {currentNudge && (
+        <NudgeCard
+          title={currentNudge.title}
+          description={currentNudge.description}
+          ctaText={currentNudge.ctaText}
+          ctaTo={currentNudge.ctaTo}
+          nudgeKey={currentNudge.nudgeKey}
+          userId={user?.id}
+        />
+      )}
+
       {/* Conditional Rendering */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -462,6 +627,10 @@ export default function Feed() {
               participantCount + (activity.creator_id ? 1 : 0);
             const capacity =
               activity.max_participants || activity.capacity || "∞";
+
+            // Check if user is invited to this invite-only activity
+            const isInvited = invitedActivityIds.includes(activity.id);
+
             return (
               <ActivityCard
                 key={activity.id}
@@ -477,28 +646,26 @@ export default function Feed() {
                 }}
                 currentCount={currentCount}
                 capacity={capacity}
+                isInvited={isInvited}
               />
             );
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-            <Search className="text-slate-400" size={28} />
-          </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">
-            No activities found
-          </h3>
-          <p className="text-slate-500 mb-6">
-            Try adjusting your filters or create a new activity
-          </p>
-          <Link
-            to="/create-activity"
-            className="flex items-center gap-2 bg-coral-500 text-white px-6 py-3 rounded-lg hover:bg-coral-600 transition-colors"
-          >
-            <Plus size={20} />
-            Create Activity
-          </Link>
+        <div className="py-8">
+          <EmptyState
+            title="No activities found"
+            description="No activities match your current filters. Try adjusting your search or be the first to create one!"
+            icon={Activity}
+            primaryAction={{
+              label: "Create Activity",
+              to: "/app/create-activity",
+            }}
+            secondaryAction={{
+              label: "Find Mates",
+              to: "/app/mates",
+            }}
+          />
         </div>
       )}
     </div>
