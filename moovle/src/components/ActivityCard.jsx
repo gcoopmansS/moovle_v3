@@ -22,18 +22,18 @@ export default function ActivityCard({
   let action = null;
   if (isHost) {
     action = (
-      <span className="ml-2 px-2 py-1 rounded bg-slate-100 text-slate-500 text-xs font-medium border border-slate-200">
+      <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-sm font-semibold border border-slate-200">
         Host
       </span>
     );
   } else if (joined) {
     action = (
-      <div className="flex items-center gap-2 ml-2">
+      <div className="flex items-center gap-2">
         <button
-          className="border border-coral-500 text-coral-500 bg-white px-3 py-1 rounded-lg text-sm font-semibold flex items-center gap-1 cursor-pointer"
+          className="border border-coral-500 text-coral-500 bg-white px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-coral-50 transition-colors cursor-pointer"
           disabled={loading}
         >
-          Joined <span className="text-green-500">✓</span>
+          Joined <span className="text-green-500 text-base">✓</span>
         </button>
         <button
           className="text-xs text-slate-400 hover:text-coral-500 underline cursor-pointer"
@@ -51,7 +51,7 @@ export default function ActivityCard({
     if (currentCount >= capacity) {
       action = (
         <button
-          className="ml-2 bg-slate-200 text-slate-400 px-3 py-1 rounded-lg text-sm font-semibold cursor-not-allowed cursor-pointer"
+          className="bg-slate-200 text-slate-500 px-4 py-1.5 rounded-lg text-sm font-semibold cursor-not-allowed"
           disabled
         >
           Full
@@ -60,7 +60,7 @@ export default function ActivityCard({
     } else {
       action = (
         <button
-          className="ml-2 bg-coral-500 text-white px-3 py-1 rounded-lg text-sm font-semibold hover:bg-coral-600 transition-colors cursor-pointer"
+          className="bg-coral-500 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-coral-600 transition-colors shadow-sm cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             onJoin();
@@ -74,7 +74,7 @@ export default function ActivityCard({
   }
 
   const cardClasses = [
-    "bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer",
+    "bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-gray-300 transition-all duration-200 cursor-pointer",
     isPast ? "opacity-60 grayscale" : "",
   ].join(" ");
 
@@ -82,19 +82,15 @@ export default function ActivityCard({
     <div className={cardClasses} onClick={onClick}>
       <div className="flex items-start gap-4">
         {/* Sport Icon */}
-        <div className="w-12 h-12 bg-coral-50 rounded-xl flex items-center justify-center text-2xl shrink-0">
+        <div className="w-14 h-14 bg-coral-50 rounded-xl flex items-center justify-center text-2xl shrink-0 border border-coral-100">
           {getSportIcon(activity.sport)}
         </div>
 
         {/* Activity Details */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="text-xs font-medium text-coral-500 uppercase">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="text-xs font-semibold text-coral-600 uppercase tracking-wide">
               {activity.sport}
-            </span>
-            <span className="text-xs text-slate-400">•</span>
-            <span className="text-xs text-slate-500">
-              {formatDate(activity.date_time)}
             </span>
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${visibilityBadge.color}`}
@@ -104,36 +100,39 @@ export default function ActivityCard({
             </span>
           </div>
 
-          <h3 className="font-semibold text-slate-800 mb-2 truncate">
+          <h3 className="font-bold text-lg text-slate-800 mb-3 leading-tight">
             {activity.title}
           </h3>
 
-          <div className="flex flex-wrap gap-3 text-sm text-slate-500">
+          <div className="flex flex-wrap gap-4 text-xs text-slate-500 mb-3">
             <span className="flex items-center gap-1">
-              <Clock size={14} />
+              <Clock size={12} />
+              {formatDate(activity.date_time)} •{" "}
               {formatTime(activity.date_time)}
               {activity.duration && ` • ${formatDuration(activity.duration)}`}
-              {activity.distance && ` • ${activity.distance} km`}
             </span>
             <span className="flex items-center gap-1">
-              <MapPin size={14} />
+              <MapPin size={12} />
               {activity.location}
             </span>
           </div>
 
           {/* Organizer and Actions */}
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-            <div className="w-6 h-6 bg-coral-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-              {activity.organizer?.full_name?.charAt(0) || "?"}
-            </div>
-            <span className="text-sm text-slate-600">
-              {activity.organizer?.full_name || "Unknown"}
-            </span>
-            <div className="ml-auto flex items-center gap-2">
-              <span className="flex items-center gap-1 text-sm text-slate-400">
-                <Users size={14} />
+          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-coral-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                {activity.organizer?.full_name?.charAt(0) || "?"}
+              </div>
+              <span className="text-sm text-slate-600 font-medium">
+                {activity.organizer?.full_name || "Unknown"}
+              </span>
+              <span className="flex items-center gap-1 text-xs text-slate-400 ml-2">
+                <Users size={12} />
                 {currentCount || 0}/{capacity || "∞"}
               </span>
+            </div>
+
+            <div className="flex items-center gap-3">
               {/* Participant Avatars */}
               {Array.isArray(activity.participants) &&
                 activity.participants.length > 0 && (
@@ -145,7 +144,7 @@ export default function ActivityCard({
                       return (
                         <div
                           key={p.id}
-                          className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600 overflow-hidden shadow"
+                          className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600 overflow-hidden shadow-sm"
                           title={hasName ? p.full_name : ""}
                         >
                           {p.avatar_url ? (
@@ -163,7 +162,7 @@ export default function ActivityCard({
                       );
                     })}
                     {activity.participants.length > 4 && (
-                      <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center text-xs font-semibold text-slate-600 shadow">
+                      <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center text-xs font-semibold text-slate-600 shadow-sm">
                         +{activity.participants.length - 4}
                       </div>
                     )}
