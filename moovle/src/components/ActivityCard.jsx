@@ -14,6 +14,7 @@ export default function ActivityCard({
   onLeave,
   agendaMode = false,
   isPast = false,
+  isInvited = false,
 }) {
   const visibilityBadge = getVisibilityBadge(activity.visibility);
   const VisibilityIcon = visibilityBadge.icon;
@@ -58,16 +59,27 @@ export default function ActivityCard({
         </button>
       );
     } else {
+      // Special styling for invite-only activities where user is invited
+      const isInviteOnlyAndInvited =
+        activity.visibility === "invite_only" && isInvited;
+      const buttonClasses = isInviteOnlyAndInvited
+        ? "bg-amber-500 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-amber-600 transition-colors shadow-md cursor-pointer ring-2 ring-amber-200"
+        : "bg-coral-500 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-coral-600 transition-colors shadow-sm cursor-pointer";
+
       action = (
         <button
-          className="bg-coral-500 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-coral-600 transition-colors shadow-sm cursor-pointer"
+          className={buttonClasses}
           onClick={(e) => {
             e.stopPropagation();
             onJoin();
           }}
           disabled={loading}
         >
-          {loading ? "Joining..." : "Join"}
+          {loading
+            ? "Joining..."
+            : isInviteOnlyAndInvited
+              ? "Accept Invite"
+              : "Join"}
         </button>
       );
     }
@@ -92,6 +104,11 @@ export default function ActivityCard({
             <span className="text-xs font-semibold text-coral-600 uppercase tracking-wide">
               {activity.sport}
             </span>
+            {isHost && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-coral-100 text-coral-700">
+                Your activity
+              </span>
+            )}
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${visibilityBadge.color}`}
             >
@@ -117,6 +134,20 @@ export default function ActivityCard({
             </span>
           </div>
 
+          {/* Prominent participant count */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
+              <Users size={14} />
+              <span className="font-semibold text-slate-800">
+                {currentCount || 0}
+              </span>
+              <span className="text-slate-500">joined</span>
+              {capacity !== "∞" && (
+                <span className="text-slate-400 text-xs">of {capacity}</span>
+              )}
+            </span>
+          </div>
+
           {/* Organizer and Actions */}
           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
             <div className="flex items-center gap-2">
@@ -125,10 +156,6 @@ export default function ActivityCard({
               </div>
               <span className="text-sm text-slate-600 font-medium">
                 {activity.organizer?.full_name || "Unknown"}
-              </span>
-              <span className="flex items-center gap-1 text-xs text-slate-400 ml-2">
-                <Users size={12} />
-                {currentCount || 0}/{capacity || "∞"}
               </span>
             </div>
 

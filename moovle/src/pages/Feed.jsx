@@ -33,6 +33,7 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState({}); // { [activityId]: boolean }
   const [joinedIds, setJoinedIds] = useState([]); // [activityId]
+  const [invitedActivityIds, setInvitedActivityIds] = useState([]); // [activityId]
 
   // Modal state for leave confirmation
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
@@ -264,7 +265,7 @@ export default function Feed() {
     try {
       // First, get user's mate IDs for visibility filtering
       let mateIds = [];
-      let invitedActivityIds = [];
+      let userInvitedActivityIds = [];
 
       if (user) {
         // Fetch mates
@@ -288,9 +289,14 @@ export default function Feed() {
           .in("status", ["pending", "accepted"]);
 
         if (invitesData) {
-          invitedActivityIds = invitesData.map((invite) => invite.activity_id);
+          userInvitedActivityIds = invitesData.map(
+            (invite) => invite.activity_id,
+          );
         }
       }
+
+      // Store invited activity IDs in state for use in rendering
+      setInvitedActivityIds(userInvitedActivityIds);
 
       let query = supabase
         .from("activities")
@@ -347,7 +353,7 @@ export default function Feed() {
               return mateIds.includes(activity.creator_id);
             case "invite_only":
               // For invite-only activities, check if user was invited
-              return invitedActivityIds.includes(activity.id);
+              return userInvitedActivityIds.includes(activity.id);
             default:
               return true; // Default to public if visibility is not set
           }
@@ -487,6 +493,10 @@ export default function Feed() {
               participantCount + (activity.creator_id ? 1 : 0);
             const capacity =
               activity.max_participants || activity.capacity || "∞";
+
+            // Check if user is invited to this invite-only activity
+            const isInvited = invitedActivityIds.includes(activity.id);
+
             return (
               <ActivityCard
                 key={activity.id}
@@ -502,6 +512,7 @@ export default function Feed() {
                 }}
                 currentCount={currentCount}
                 capacity={capacity}
+                isInvited={isInvited}
               />
             );
           })}
