@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { format, isToday, isTomorrow } from "date-fns";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Calendar, Activity } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { notifyActivityLeft } from "../lib/notifications";
 import ActivityCard from "../components/ActivityCard";
+import EmptyState from "../components/EmptyState";
 
 import Modal from "../components/Modal";
 
@@ -36,7 +37,7 @@ export default function Agenda() {
         .select("activity_id, user_id")
         .in(
           "activity_id",
-          activities.map((a) => a.id)
+          activities.map((a) => a.id),
         );
       if (!error && data) {
         // Aggregate counts in JS
@@ -57,7 +58,7 @@ export default function Agenda() {
       const { data: organized } = await supabase
         .from("activities")
         .select(
-          `*, organizer:profiles!creator_id(id, full_name, avatar_url), participants:activity_participants(user_id, profiles(id, full_name, avatar_url))`
+          `*, organizer:profiles!creator_id(id, full_name, avatar_url), participants:activity_participants(user_id, profiles(id, full_name, avatar_url))`,
         )
         .eq("creator_id", user.id);
 
@@ -74,7 +75,7 @@ export default function Agenda() {
         const { data: joinedActs } = await supabase
           .from("activities")
           .select(
-            `*, organizer:profiles!creator_id(id, full_name, avatar_url), participants:activity_participants(user_id, profiles(id, full_name, avatar_url))`
+            `*, organizer:profiles!creator_id(id, full_name, avatar_url), participants:activity_participants(user_id, profiles(id, full_name, avatar_url))`,
           )
           .in("id", joinedIds);
         joined = joinedActs || [];
@@ -82,7 +83,7 @@ export default function Agenda() {
 
       // Merge and deduplicate activities
       const all = [...(organized || []), ...joined].filter(
-        (a, i, arr) => arr.findIndex((b) => b.id === a.id) === i
+        (a, i, arr) => arr.findIndex((b) => b.id === a.id) === i,
       );
 
       // Map participants to flat array of {id, full_name, avatar_url}, always include organizer
@@ -99,7 +100,7 @@ export default function Agenda() {
           activity.organizer.full_name.trim().length > 0
         ) {
           const alreadyIncluded = participants.some(
-            (p) => p.id === activity.organizer.id
+            (p) => p.id === activity.organizer.id,
           );
           if (!alreadyIncluded) {
             participants = [activity.organizer, ...participants];
@@ -129,8 +130,8 @@ export default function Agenda() {
                 ? a.participants.filter((p) => p.id !== user.id)
                 : [],
             }
-          : a
-      )
+          : a,
+      ),
     );
     setParticipantCounts((prev) => ({
       ...prev,
@@ -156,7 +157,7 @@ export default function Agenda() {
           user.id,
           userName,
           activity.id,
-          activity.title
+          activity.title,
         );
       }
     }
@@ -188,7 +189,7 @@ export default function Agenda() {
   });
 
   const sortedDayKeys = Object.keys(dayGroups).sort(
-    (a, b) => new Date(a) - new Date(b)
+    (a, b) => new Date(a) - new Date(b),
   );
 
   function getDayLabel(dayKey) {
@@ -200,65 +201,40 @@ export default function Agenda() {
 
   function renderEmptyState() {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center min-h-[60vh] py-12">
-        <div className="mb-8">
-          <div className="w-16 h-16 rounded-full bg-coral-500 border-4 border-white shadow-md flex items-center justify-center mx-auto">
-            <span className="text-white text-3xl">+</span>
-          </div>
-        </div>
-        <div className="text-2xl font-semibold text-slate-700 mb-3 text-center">
-          No activities yet
-        </div>
-        <div className="text-slate-500 mb-8 text-center">
-          Start by creating your first activity or join one from the feed!
-        </div>
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={() => (window.location.href = "/create-activity")}
-            className="px-6 py-3 rounded-full bg-coral-500 text-white font-semibold shadow hover:bg-coral-600 transition-colors cursor-pointer"
-          >
-            + New Activity
-          </button>
-          <button
-            onClick={() => (window.location.href = "/feed")}
-            className="px-6 py-3 rounded-full bg-white border border-coral-500 text-coral-500 font-semibold shadow hover:bg-coral-50 transition-colors cursor-pointer"
-          >
-            Find one to join
-          </button>
-        </div>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <EmptyState
+          title="No activities yet"
+          description="Start by creating your first activity or join one from the feed!"
+          icon={Activity}
+          primaryAction={{
+            label: "Create Activity",
+            to: "/app/create-activity",
+          }}
+          secondaryAction={{
+            label: "Browse Feed",
+            to: "/app/feed",
+          }}
+        />
       </div>
     );
   }
 
   function renderOnlyPastState() {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center min-h-[60vh] py-12">
-        <div className="mb-8">
-          <div className="w-16 h-16 rounded-full bg-coral-500 border-4 border-white shadow-md flex items-center justify-center mx-auto">
-            <span className="text-white text-3xl">+</span>
-          </div>
-        </div>
-        <div className="text-2xl font-semibold text-slate-700 mb-3 text-center">
-          No upcoming activities
-        </div>
-        <div className="text-slate-500 mb-8 text-center">
-          You have no activities planned. Create a new one or join an activity
-          from the feed!
-        </div>
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={() => (window.location.href = "/create-activity")}
-            className="px-6 py-3 rounded-full bg-coral-500 text-white font-semibold shadow hover:bg-coral-600 transition-colors cursor-pointer"
-          >
-            + New Activity
-          </button>
-          <button
-            onClick={() => (window.location.href = "/feed")}
-            className="px-6 py-3 rounded-full bg-white border border-coral-500 text-coral-500 font-semibold shadow hover:bg-coral-50 transition-colors cursor-pointer"
-          >
-            Find one to join
-          </button>
-        </div>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <EmptyState
+          title="No upcoming activities"
+          description="You have no activities planned. Create a new one or join an activity from the feed!"
+          icon={Calendar}
+          primaryAction={{
+            label: "Create Activity",
+            to: "/app/create-activity",
+          }}
+          secondaryAction={{
+            label: "Browse Feed",
+            to: "/app/feed",
+          }}
+        />
       </div>
     );
   }
@@ -292,7 +268,7 @@ export default function Agenda() {
           {showPast &&
             pastDayKeys.map((dayKey) => {
               const acts = dayGroups[dayKey].sort(
-                (a, b) => new Date(a.date_time) - new Date(b.date_time)
+                (a, b) => new Date(a.date_time) - new Date(b.date_time),
               );
               return (
                 <div key={dayKey} className="flex flex-row items-start group">
@@ -344,7 +320,7 @@ export default function Agenda() {
           {(() => {
             const todayActs =
               dayGroups[todayKey]?.sort(
-                (a, b) => new Date(a.date_time) - new Date(b.date_time)
+                (a, b) => new Date(a.date_time) - new Date(b.date_time),
               ) || [];
             return (
               <div key={todayKey} className="flex flex-row items-start group">
@@ -389,8 +365,20 @@ export default function Agenda() {
                         );
                       })
                     ) : (
-                      <div className="p-6 rounded-xl border border-gray-100 bg-white text-slate-500 text-center">
-                        No activities planned today
+                      <div className="rounded-xl border border-gray-100 bg-white p-2">
+                        <EmptyState
+                          title="No activities planned today"
+                          description="Want to get active today? Create an activity or find one to join."
+                          icon={Activity}
+                          primaryAction={{
+                            label: "Create Activity",
+                            to: "/app/create-activity",
+                          }}
+                          secondaryAction={{
+                            label: "Browse Feed",
+                            to: "/app/feed",
+                          }}
+                        />
                       </div>
                     )}
                   </div>
@@ -401,7 +389,7 @@ export default function Agenda() {
           {/* Future days below today */}
           {futureDayKeys.map((dayKey) => {
             const acts = dayGroups[dayKey].sort(
-              (a, b) => new Date(a.date_time) - new Date(b.date_time)
+              (a, b) => new Date(a.date_time) - new Date(b.date_time),
             );
             return (
               <div key={dayKey} className="flex flex-row items-start group">
@@ -503,8 +491,8 @@ export default function Agenda() {
         (activities.length === 0
           ? renderEmptyState()
           : !hasUpcoming && hasPast && !showPast
-          ? renderOnlyPastState()
-          : renderTimeline())}
+            ? renderOnlyPastState()
+            : renderTimeline())}
     </div>
   );
 }

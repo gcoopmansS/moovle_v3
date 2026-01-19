@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Activity, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { sports } from "../config/sports";
 import { notifyActivityJoined, notifyActivityLeft } from "../lib/notifications";
 import ActivityCard from "../components/ActivityCard";
+import EmptyState from "../components/EmptyState";
 import Modal from "../components/Modal";
 
 const dateFilters = ["All", "Today", "Tomorrow", "This Week"];
@@ -52,7 +53,7 @@ export default function Feed() {
         .select("activity_id")
         .in(
           "activity_id",
-          activities.map((a) => a.id)
+          activities.map((a) => a.id),
         );
       if (!error && data) {
         // data: [{ activity_id, count }]
@@ -99,7 +100,7 @@ export default function Feed() {
           user.id,
           userName,
           activity.id,
-          activity.title
+          activity.title,
         );
       }
 
@@ -134,7 +135,7 @@ export default function Feed() {
           user.id,
           userName,
           activity.id,
-          activity.title
+          activity.title,
         );
       }
 
@@ -156,7 +157,7 @@ export default function Feed() {
           *,
           organizer:profiles!creator_id(id, full_name, avatar_url),
           participants:activity_participants(user_id, profiles(id, full_name, avatar_url))
-        `
+        `,
         )
         .eq("id", activityId)
         .single();
@@ -186,7 +187,7 @@ export default function Feed() {
         activityData.organizer.full_name.trim().length > 0
       ) {
         const alreadyIncluded = participants.some(
-          (p) => p.id === activityData.organizer.id
+          (p) => p.id === activityData.organizer.id,
         );
         if (!alreadyIncluded) {
           participants = [activityData.organizer, ...participants];
@@ -200,7 +201,7 @@ export default function Feed() {
 
       // Update the specific activity in state
       setActivities((prev) =>
-        prev.map((a) => (a.id === activityId ? activityData : a))
+        prev.map((a) => (a.id === activityId ? activityData : a)),
       );
 
       // Update participant count for this activity (exclude organizer since they're always included)
@@ -251,7 +252,7 @@ export default function Feed() {
 
         if (matesData) {
           mateIds = matesData.map((m) =>
-            m.requester_id === user.id ? m.receiver_id : m.requester_id
+            m.requester_id === user.id ? m.receiver_id : m.requester_id,
           );
         }
 
@@ -274,7 +275,7 @@ export default function Feed() {
           *,
           organizer:profiles!creator_id(id, full_name, avatar_url),
           participants:activity_participants(user_id, profiles(id, full_name, avatar_url))
-        `
+        `,
         )
         .gte("date_time", new Date().toISOString())
         .order("date_time", { ascending: true });
@@ -345,7 +346,7 @@ export default function Feed() {
             activity.organizer.full_name.trim().length > 0
           ) {
             const alreadyIncluded = participants.some(
-              (p) => p.id === activity.organizer.id
+              (p) => p.id === activity.organizer.id,
             );
             if (!alreadyIncluded) {
               participants = [activity.organizer, ...participants];
@@ -363,7 +364,7 @@ export default function Feed() {
   };
 
   const filteredActivities = activities.filter((activity) =>
-    activity.title.toLowerCase().includes(searchQuery.toLowerCase())
+    activity.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -482,23 +483,20 @@ export default function Feed() {
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-            <Search className="text-slate-400" size={28} />
-          </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">
-            No activities found
-          </h3>
-          <p className="text-slate-500 mb-6">
-            Try adjusting your filters or create a new activity
-          </p>
-          <Link
-            to="/create-activity"
-            className="flex items-center gap-2 bg-coral-500 text-white px-6 py-3 rounded-lg hover:bg-coral-600 transition-colors"
-          >
-            <Plus size={20} />
-            Create Activity
-          </Link>
+        <div className="py-8">
+          <EmptyState
+            title="No activities found"
+            description="No activities match your current filters. Try adjusting your search or be the first to create one!"
+            icon={Activity}
+            primaryAction={{
+              label: "Create Activity",
+              to: "/app/create-activity",
+            }}
+            secondaryAction={{
+              label: "Find Mates",
+              to: "/app/mates",
+            }}
+          />
         </div>
       )}
     </div>
