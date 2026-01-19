@@ -1,7 +1,8 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { Bell, User, Calendar, Check, X } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import {
   notifyMateAccepted,
@@ -13,6 +14,8 @@ import ActivityModal from "./ActivityModal";
 
 export default function Layout() {
   const { user } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -51,7 +54,7 @@ export default function Layout() {
           *,
           related_user:profiles!related_user_id(id, full_name, avatar_url),
           related_activity:activities!related_activity_id(id, title, sport, date_time)
-        `
+        `,
           )
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
@@ -89,14 +92,14 @@ export default function Layout() {
             }
           }
           return notification;
-        })
+        }),
       );
 
       setNotifications(processedNotifications);
 
       // Count unread notifications
       const unreadNotifications = processedNotifications.filter(
-        (n) => !n.is_read
+        (n) => !n.is_read,
       );
       setUnreadCount(unreadNotifications.length);
     } catch (err) {
@@ -126,7 +129,7 @@ export default function Layout() {
         },
         () => {
           fetchNotifications();
-        }
+        },
       )
       .subscribe();
 
@@ -153,7 +156,7 @@ export default function Layout() {
               user_id,
               profiles(full_name, avatar_url)
             )
-          `
+          `,
           )
           .eq("id", activityId)
           .single();
@@ -181,34 +184,78 @@ export default function Layout() {
 
   const markAsRead = async (notificationId) => {
     try {
-      await supabase
+      // Optimistically update UI first
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notificationId ? { ...n, is_read: true } : n,
+        ),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+
+      // Then update database
+      const { error } = await supabase
         .from("notifications")
         .update({ is_read: true })
         .eq("id", notificationId);
 
-      // Update local state
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      if (error) {
+        // Revert optimistic update on error
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notificationId ? { ...n, is_read: false } : n,
+          ),
+        );
+        setUnreadCount((prev) => prev + 1);
+        throw error;
+      }
     } catch (err) {
       console.error("Error marking notification as read:", err);
+      showToast({
+        type: "error",
+        title: "Failed to mark as read",
+        message: "Could not mark notification as read. Please try again.",
+      });
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      await supabase
+      // Optimistically update UI first
+      const unreadNotifications = notifications.filter((n) => !n.is_read);
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+
+      // Then update database
+      const { error } = await supabase
         .from("notifications")
         .update({ is_read: true })
         .eq("user_id", user.id)
         .eq("is_read", false);
 
-      // Update local state
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      setUnreadCount(0);
+      if (error) {
+        // Revert optimistic update on error
+        setNotifications((prev) =>
+          prev.map((n) => {
+            const wasUnread = unreadNotifications.some((un) => un.id === n.id);
+            return wasUnread ? { ...n, is_read: false } : n;
+          }),
+        );
+        setUnreadCount(unreadNotifications.length);
+        throw error;
+      }
+
+      showToast({
+        type: "success",
+        title: "Marked as read",
+        message: "All notifications marked as read.",
+      });
     } catch (err) {
       console.error("Error marking all notifications as read:", err);
+      showToast({
+        type: "error",
+        title: "Failed to mark as read",
+        message: "Could not mark all notifications as read. Please try again.",
+      });
     }
   };
 
@@ -243,7 +290,7 @@ export default function Layout() {
 
       // Mark the mate request notification as read and update locally
       const notificationToUpdate = notifications.find(
-        (n) => n.type === "mate_request" && n.related_user_id === requesterId
+        (n) => n.type === "mate_request" && n.related_user_id === requesterId,
       );
 
       if (notificationToUpdate && !notificationToUpdate.is_read) {
@@ -258,8 +305,8 @@ export default function Layout() {
         prev.map((n) =>
           n.type === "mate_request" && n.related_user_id === requesterId
             ? { ...n, is_read: true, mate_request_handled: "accepted" }
-            : n
-        )
+            : n,
+        ),
       );
 
       // Update unread count
@@ -275,7 +322,7 @@ export default function Layout() {
             requesterId,
             mateRequestId: mateRequest.id,
           },
-        })
+        }),
       );
     } catch (error) {
       console.error("Error accepting mate request:", error);
@@ -309,7 +356,7 @@ export default function Layout() {
 
       // Mark the mate request notification as read and update locally
       const notificationToUpdate = notifications.find(
-        (n) => n.type === "mate_request" && n.related_user_id === requesterId
+        (n) => n.type === "mate_request" && n.related_user_id === requesterId,
       );
 
       if (notificationToUpdate && !notificationToUpdate.is_read) {
@@ -324,8 +371,8 @@ export default function Layout() {
         prev.map((n) =>
           n.type === "mate_request" && n.related_user_id === requesterId
             ? { ...n, is_read: true, mate_request_handled: "declined" }
-            : n
-        )
+            : n,
+        ),
       );
 
       // Update unread count
@@ -341,7 +388,7 @@ export default function Layout() {
             requesterId,
             mateRequestId: mateRequest.id,
           },
-        })
+        }),
       );
     } catch (error) {
       console.error("Error declining mate request:", error);
@@ -373,7 +420,7 @@ export default function Layout() {
           user.id,
           userName,
           activity.id,
-          activity.title
+          activity.title,
         );
       }
 
@@ -389,7 +436,7 @@ export default function Layout() {
             user_id,
             profiles(full_name, avatar_url)
           )
-        `
+        `,
         )
         .eq("id", activity.id)
         .single();
@@ -431,7 +478,7 @@ export default function Layout() {
           user.id,
           userName,
           activity.id,
-          activity.title
+          activity.title,
         );
       }
 
@@ -447,7 +494,7 @@ export default function Layout() {
             user_id,
             profiles(full_name, avatar_url)
           )
-        `
+        `,
         )
         .eq("id", activity.id)
         .single();
@@ -478,6 +525,38 @@ export default function Layout() {
     }
   };
 
+  const handleNotificationClick = async (notification) => {
+    // Mark as read if not already
+    if (!notification.is_read) {
+      await markAsRead(notification.id);
+    }
+
+    // Navigate based on notification type
+    if (notification.related_activity_id) {
+      // Activity-related notifications - open activity modal
+      const activityEvent = new CustomEvent("openActivityModal", {
+        detail: {
+          activityId: notification.related_activity_id,
+          activityData: notification.related_activity,
+        },
+      });
+      window.dispatchEvent(activityEvent);
+    } else if (
+      notification.type === "mate_accepted" ||
+      notification.type === "mate_request"
+    ) {
+      // Mate-related notifications - navigate to mates page
+      navigate("/app/mates", {
+        state: {
+          activeTab:
+            notification.type === "mate_request" ? "requests" : "mates",
+        },
+      });
+    }
+
+    setShowDropdown(false);
+  };
+
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -503,15 +582,7 @@ export default function Layout() {
           {/* Notification Bell - Fixed Position */}
           <div className="fixed top-8 right-8 z-50" ref={dropdownRef}>
             <button
-              onClick={() => {
-                const wasClosing = showDropdown;
-                setShowDropdown(!showDropdown);
-
-                // Auto-mark all as read when opening the dropdown
-                if (!wasClosing && unreadCount > 0) {
-                  markAllAsRead();
-                }
-              }}
+              onClick={() => setShowDropdown(!showDropdown)}
               className={`p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer ${
                 showDropdown ? "bg-coral-50" : ""
               }`}
@@ -572,8 +643,10 @@ export default function Layout() {
                     {notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`px-4 py-3 border-b border-gray-50 ${
-                          !notification.is_read ? "bg-blue-50" : ""
+                        className={`px-4 py-3 border-b border-gray-50 transition-colors ${
+                          !notification.is_read
+                            ? "bg-coral-50 border-l-2 border-l-coral-500"
+                            : ""
                         } ${
                           notification.type !== "mate_request"
                             ? "hover:bg-gray-50 cursor-pointer"
@@ -581,31 +654,7 @@ export default function Layout() {
                         }`}
                         onClick={
                           notification.type !== "mate_request"
-                            ? () => {
-                                if (!notification.is_read) {
-                                  markAsRead(notification.id);
-                                }
-                                // Handle navigation based on notification type
-                                if (
-                                  notification.related_activity_id &&
-                                  notification.type !== "mate_request"
-                                ) {
-                                  // Dispatch event to open activity modal on current page
-                                  const activityEvent = new CustomEvent(
-                                    "openActivityModal",
-                                    {
-                                      detail: {
-                                        activityId:
-                                          notification.related_activity_id,
-                                        activityData:
-                                          notification.related_activity,
-                                      },
-                                    }
-                                  );
-                                  window.dispatchEvent(activityEvent);
-                                }
-                                setShowDropdown(false);
-                              }
+                            ? () => handleNotificationClick(notification)
                             : undefined
                         }
                       >
@@ -647,7 +696,7 @@ export default function Layout() {
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         acceptMateRequest(
-                                          notification.related_user_id
+                                          notification.related_user_id,
                                         );
                                       }}
                                       className="flex items-center gap-1 px-3 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-medium rounded-md transition-colors cursor-pointer"
@@ -659,7 +708,7 @@ export default function Layout() {
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         declineMateRequest(
-                                          notification.related_user_id
+                                          notification.related_user_id,
                                         );
                                       }}
                                       className="flex items-center gap-1 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-md transition-colors cursor-pointer"
@@ -693,7 +742,7 @@ export default function Layout() {
               // Check if current user is in participants
               const joined =
                 selectedActivity.activity_participants?.some(
-                  (participant) => participant.user_id === user.id
+                  (participant) => participant.user_id === user.id,
                 ) || false;
               // Get current participant count - add 1 for host if they're not already in participants
               const participantCount =
@@ -701,7 +750,7 @@ export default function Layout() {
               const hostInParticipants =
                 selectedActivity.activity_participants?.some(
                   (participant) =>
-                    participant.user_id === selectedActivity.creator_id
+                    participant.user_id === selectedActivity.creator_id,
                 );
               const currentCount =
                 participantCount + (hostInParticipants ? 0 : 1);
@@ -713,7 +762,7 @@ export default function Layout() {
                     organizer: selectedActivity.profiles,
                     participants:
                       selectedActivity.activity_participants?.map(
-                        (p) => p.profiles
+                        (p) => p.profiles,
                       ) || [],
                   }}
                   open={activityModalOpen}
