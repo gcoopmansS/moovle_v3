@@ -445,6 +445,16 @@ export default function Layout() {
         console.error("Error fetching updated activity:", fetchError);
       } else if (updatedActivity) {
         setSelectedActivity(updatedActivity);
+
+        // Broadcast activity update event to sync with background pages
+        const activityUpdateEvent = new CustomEvent("activityStateChanged", {
+          detail: {
+            activityId: activity.id,
+            action: "joined",
+            updatedActivity,
+          },
+        });
+        window.dispatchEvent(activityUpdateEvent);
       }
     } catch (err) {
       console.error("Error joining activity:", err);
@@ -503,6 +513,16 @@ export default function Layout() {
         console.error("Error fetching updated activity:", fetchError);
       } else if (updatedActivity) {
         setSelectedActivity(updatedActivity);
+
+        // Broadcast activity update event to sync with background pages
+        const activityUpdateEvent = new CustomEvent("activityStateChanged", {
+          detail: {
+            activityId: activity.id,
+            action: "left",
+            updatedActivity,
+          },
+        });
+        window.dispatchEvent(activityUpdateEvent);
       }
     } catch (err) {
       console.error("Error leaving activity:", err);

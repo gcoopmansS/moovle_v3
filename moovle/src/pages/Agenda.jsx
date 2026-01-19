@@ -27,6 +27,53 @@ export default function Agenda() {
   useEffect(() => {
     if (!user) return;
     fetchActivities();
+
+    // Listen for activity state changes from the modal
+    const handleActivityStateChange = (event) => {
+      const { activityId, action, updatedActivity } = event.detail;
+
+      // Update the specific activity in our local state
+      setActivities((prev) =>
+        prev.map((activity) =>
+          activity.id === activityId
+            ? {
+                ...activity,
+                ...updatedActivity,
+                participants:
+                  updatedActivity.activity_participants?.map(
+                    (p) => p.profiles,
+                  ) || activity.participants,
+              }
+            : activity,
+        ),
+      );
+
+      // Update joined status based on action
+      if (action === "joined") {
+        setJoinedIds((prev) =>
+          prev.includes(activityId) ? prev : [...prev, activityId],
+        );
+      } else if (action === "left") {
+        setJoinedIds((prev) => prev.filter((id) => id !== activityId));
+      }
+
+      // Update participant count
+      const newParticipantCount =
+        (updatedActivity.activity_participants?.length || 1) - 1; // Subtract organizer
+      setParticipantCounts((prev) => ({
+        ...prev,
+        [activityId]: Math.max(0, newParticipantCount),
+      }));
+    };
+
+    window.addEventListener("activityStateChanged", handleActivityStateChange);
+
+    return () => {
+      window.removeEventListener(
+        "activityStateChanged",
+        handleActivityStateChange,
+      );
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -116,6 +163,19 @@ export default function Agenda() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle opening activity details modal
+  const handleActivityClick = (activity) => {
+    console.log("Activity clicked:", activity);
+    // Dispatch event to open global activity modal
+    const activityEvent = new CustomEvent("openActivityModal", {
+      detail: {
+        activityId: activity.id,
+        activityData: activity,
+      },
+    });
+    window.dispatchEvent(activityEvent);
   };
 
   // Optimistic leave handler (moved outside fetchActivities)
@@ -303,6 +363,7 @@ export default function Agenda() {
                           <div key={activity.id} className="opacity-60">
                             <ActivityCard
                               activity={activity}
+                              onClick={() => handleActivityClick(activity)}
                               agendaMode={true}
                               isHost={isHost}
                               joined={joined}
@@ -356,6 +417,7 @@ export default function Agenda() {
                           <div key={activity.id}>
                             <ActivityCard
                               activity={activity}
+                              onClick={() => handleActivityClick(activity)}
                               agendaMode={true}
                               isHost={isHost}
                               joined={joined}
@@ -424,6 +486,7 @@ export default function Agenda() {
                         <div key={activity.id}>
                           <ActivityCard
                             activity={activity}
+                            onClick={() => handleActivityClick(activity)}
                             agendaMode={true}
                             isHost={isHost}
                             joined={joined}
