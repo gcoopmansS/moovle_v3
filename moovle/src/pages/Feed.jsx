@@ -8,6 +8,7 @@ import { sports } from "../config/sports";
 import { notifyActivityJoined, notifyActivityLeft } from "../lib/notifications";
 import ActivityCard from "../components/ActivityCard";
 import EmptyState from "../components/EmptyState";
+import NudgeCard from "../components/NudgeCard";
 import Modal from "../components/Modal";
 
 const dateFilters = ["All", "Today", "Tomorrow", "This Week"];
@@ -34,6 +35,8 @@ export default function Feed() {
   const [joining, setJoining] = useState({}); // { [activityId]: boolean }
   const [joinedIds, setJoinedIds] = useState([]); // [activityId]
   const [invitedActivityIds, setInvitedActivityIds] = useState([]); // [activityId]
+  const [matesCount, setMatesCount] = useState(0);
+  const [createdActivitiesCount, setCreatedActivitiesCount] = useState(0);
 
   // Modal state for leave confirmation
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
@@ -44,6 +47,7 @@ export default function Feed() {
   useEffect(() => {
     fetchActivities();
     fetchJoinedActivities();
+    fetchNudgeData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedSport]);
 
@@ -260,6 +264,32 @@ export default function Feed() {
     window.dispatchEvent(activityEvent);
   };
 
+  // Fetch data needed for nudge decisions
+  const fetchNudgeData = async () => {
+    if (!user) return;
+
+    try {
+      // Fetch mates count
+      const { data: matesData } = await supabase
+        .from("mates")
+        .select("id", { count: "exact" })
+        .eq("status", "accepted")
+        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+      setMatesCount(matesData?.length || 0);
+
+      // Fetch created activities count
+      const { data: activitiesData } = await supabase
+        .from("activities")
+        .select("id", { count: "exact" })
+        .eq("creator_id", user.id);
+
+      setCreatedActivitiesCount(activitiesData?.length || 0);
+    } catch (error) {
+      console.error("Error fetching nudge data:", error);
+    }
+  };
+
   const fetchActivities = async () => {
     setLoading(true);
     try {
@@ -397,6 +427,51 @@ export default function Feed() {
     activity.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  // Determine which nudge to show (priority order)
+  const getNudgeToShow = () => {
+    if (!user || !profile) return null;
+
+    // 1. Check if profile.favorite_sports is empty
+    if (!profile.favorite_sports || profile.favorite_sports.length === 0) {
+      return {
+        nudgeKey: "favorite_sports",
+        title: "Add your favorite sports",
+        description:
+          "Tell us what sports you love to get better activity suggestions tailored for you.",
+        ctaText: "Add favorite sports",
+        ctaTo: "/app/profile",
+      };
+    }
+
+    // 2. Check if user has 0 mates
+    if (matesCount === 0) {
+      return {
+        nudgeKey: "find_mates",
+        title: "Find mates near you",
+        description:
+          "Connect with other sports enthusiasts in your area to join activities together.",
+        ctaText: "Find mates",
+        ctaTo: "/app/mates",
+      };
+    }
+
+    // 3. Check if user has created 0 activities
+    if (createdActivitiesCount === 0) {
+      return {
+        nudgeKey: "create_activity",
+        title: "Create your first activity",
+        description:
+          "Be the host! Create an activity and invite others to join you.",
+        ctaText: "Create activity",
+        ctaTo: "/app/create-activity",
+      };
+    }
+
+    return null;
+  };
+
+  const currentNudge = getNudgeToShow();
+
   return (
     <div className="w-full">
       {/* Leave Confirmation Modal */}
@@ -476,6 +551,18 @@ export default function Feed() {
           </button>
         ))}
       </div>
+
+      {/* Nudge Component */}
+      {currentNudge && (
+        <NudgeCard
+          title={currentNudge.title}
+          description={currentNudge.description}
+          ctaText={currentNudge.ctaText}
+          ctaTo={currentNudge.ctaTo}
+          nudgeKey={currentNudge.nudgeKey}
+          userId={user?.id}
+        />
+      )}
 
       {/* Conditional Rendering */}
       {loading ? (
