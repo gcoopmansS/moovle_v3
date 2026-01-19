@@ -15,11 +15,13 @@ import {
   UserSearch,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import { notifyMateRequest, notifyMateAccepted } from "../lib/notifications";
 
 export default function Mates() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("discover");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -387,6 +389,12 @@ export default function Mates() {
 
       if (error) throw error;
 
+      showToast({
+        type: 'success',
+        title: 'Mate Request Sent!',
+        message: 'Your mate request has been sent successfully.'
+      });
+
       // Send notification to receiver
       const userName = user.user_metadata?.full_name || "Someone";
       await notifyMateRequest(receiverId, user.id, userName);
@@ -397,6 +405,11 @@ export default function Mates() {
       setSearchResults([]);
     } catch (error) {
       console.error("Error sending mate request:", error);
+      showToast({
+        type: 'error',
+        title: 'Failed to Send Request',
+        message: 'Could not send mate request. Please try again.'
+      });
     } finally {
       setActionLoading(null);
     }

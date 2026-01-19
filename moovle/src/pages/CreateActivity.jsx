@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import { sports, visibilityOptions, getSportById } from "../config/sports";
 import { notifyActivityInvite } from "../lib/notifications";
@@ -26,6 +27,7 @@ const visibilityIcons = {
 export default function CreateActivity() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { showToast } = useToast();
   const [selectedSport, setSelectedSport] = useState("running");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -218,9 +220,22 @@ export default function CreateActivity() {
         }
       }
 
+      showToast({
+        type: 'success',
+        title: 'Activity Created!',
+        message: `${title} has been created successfully.`
+      });
+      
       navigate("/app/feed");
-    } catch {
-      setError("Failed to create activity. Please try again.");
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      const errorMessage = error?.message || "Failed to create activity. Please try again.";
+      setError(errorMessage);
+      showToast({
+        type: 'error',
+        title: 'Failed to Create Activity',
+        message: errorMessage
+      });
     } finally {
       setIsSubmitting(false);
     }

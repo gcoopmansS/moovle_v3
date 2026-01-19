@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { format, isToday, isTomorrow } from "date-fns";
 import { MoreHorizontal, Calendar, Activity } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import { notifyActivityLeft } from "../lib/notifications";
 import ActivityCard from "../components/ActivityCard";
@@ -12,6 +13,7 @@ import Modal from "../components/Modal";
 export default function Agenda() {
   const [showPast, setShowPast] = useState(false);
   const { user, profile } = useAuth();
+  const { showToast } = useToast();
   const [activities, setActivities] = useState([]);
   const [joinedIds, setJoinedIds] = useState([]); // [activityId]
   const [joining, setJoining] = useState({}); // { [activityId]: boolean }
@@ -147,7 +149,18 @@ export default function Agenda() {
     if (error) {
       // Rollback on error
       await fetchActivities();
+      showToast({
+        type: 'error',
+        title: 'Failed to Leave',
+        message: 'Could not leave the activity. Please try again.'
+      });
     } else {
+      showToast({
+        type: 'success',
+        title: 'Left Activity',
+        message: `You've left ${activity.title}.`
+      });
+      
       // Send notification to activity creator if leave was successful
       if (activity.creator_id !== user.id) {
         const userName =

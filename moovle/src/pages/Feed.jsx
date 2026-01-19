@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Plus, Activity, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import { sports } from "../config/sports";
 import { notifyActivityJoined, notifyActivityLeft } from "../lib/notifications";
@@ -23,6 +24,7 @@ const sportFilters = [
 
 export default function Feed() {
   const { profile, user } = useAuth();
+  const { showToast } = useToast();
   const [selectedDate, setSelectedDate] = useState("All");
   const [selectedSport, setSelectedSport] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -90,7 +92,18 @@ export default function Feed() {
 
     if (error) {
       console.error("Error joining activity:", error);
+      showToast({
+        type: 'error',
+        title: 'Failed to Join',
+        message: 'Could not join the activity. Please try again.'
+      });
     } else {
+      showToast({
+        type: 'success',
+        title: 'Joined Activity!',
+        message: `You've successfully joined ${activity.title}.`
+      });
+      
       // Send notification to activity creator if join was successful
       if (activity.creator_id !== user.id) {
         const userName =
@@ -125,7 +138,18 @@ export default function Feed() {
 
     if (error) {
       console.error("Error leaving activity:", error);
+      showToast({
+        type: 'error',
+        title: 'Failed to Leave',
+        message: 'Could not leave the activity. Please try again.'
+      });
     } else {
+      showToast({
+        type: 'success',
+        title: 'Left Activity',
+        message: `You've left ${activity.title}.`
+      });
+      
       // Send notification to activity creator if leave was successful
       if (activity.creator_id !== user.id) {
         const userName =

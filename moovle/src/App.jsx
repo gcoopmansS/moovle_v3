@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ToastProvider } from "./contexts/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
+import ToastHost from "./components/ToastHost";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
@@ -93,9 +95,12 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
+          <AppRoutes />
+          <ToastHost />
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }
