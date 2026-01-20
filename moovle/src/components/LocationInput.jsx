@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MapPin, X, Loader2 } from "lucide-react";
+import { MapPin, X, Loader2, AlertTriangle } from "lucide-react";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -55,7 +55,7 @@ export default function LocationInput({
         },
         (error) => {
           console.log("Geolocation not available:", error.message);
-        }
+        },
       );
     }
   }, []);
@@ -86,7 +86,7 @@ export default function LocationInput({
     try {
       // Use Mapbox Search Box API for better POI results (restaurants, shops, etc.)
       let url = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(
-        searchQuery
+        searchQuery,
       )}&access_token=${MAPBOX_TOKEN}&session_token=moovle-session&limit=5&language=en`;
 
       // Add proximity parameter to bias results towards user's location
@@ -112,7 +112,7 @@ export default function LocationInput({
               (s.types &&
                 (s.types.includes("place") || s.types.includes("locality"))) ||
               s.feature_type === "place" ||
-              s.feature_type === "locality"
+              s.feature_type === "locality",
           );
         }
         const suggestionsWithDetails = await Promise.all(
@@ -136,7 +136,7 @@ export default function LocationInput({
                     userLocation.lat,
                     userLocation.lng,
                     coords.lat,
-                    coords.lng
+                    coords.lng,
                   )
                 : null;
 
@@ -152,7 +152,7 @@ export default function LocationInput({
               category: suggestion.poi_category_ids?.[0] || null,
               country: suggestion.context?.country?.name || null,
             };
-          })
+          }),
         );
 
         setSuggestions(suggestionsWithDetails);
@@ -287,9 +287,10 @@ export default function LocationInput({
 
       {/* No token warning */}
       {!MAPBOX_TOKEN && (
-        <p className="text-xs text-amber-600 mt-1">
-          ⚠️ Add VITE_MAPBOX_TOKEN to your .env file for location search
-        </p>
+        <div className="flex items-center gap-1 text-xs text-amber-600 mt-1">
+          <AlertTriangle size={12} />
+          Add VITE_MAPBOX_TOKEN to your .env file for location search
+        </div>
       )}
     </div>
   );

@@ -1,5 +1,5 @@
-import { MapPin, Clock, Users, Lock, Globe } from "lucide-react";
-import { getSportIcon, formatDuration } from "../config/sports";
+import { MapPin, Clock, Users, Lock, Globe, Check } from "lucide-react";
+import { getSportIconProps, formatDuration } from "../config/sports";
 
 export default function ActivityCard({
   activity,
@@ -34,7 +34,7 @@ export default function ActivityCard({
           className="border border-coral-500 text-coral-500 bg-white px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-coral-50 transition-colors cursor-pointer"
           disabled={loading}
         >
-          Joined <span className="text-green-500 text-base">✓</span>
+          Joined <Check size={16} className="text-green-500" />
         </button>
         <button
           className="text-xs text-slate-400 hover:text-coral-500 underline cursor-pointer"
@@ -95,7 +95,13 @@ export default function ActivityCard({
       <div className="flex items-start gap-4">
         {/* Sport Icon */}
         <div className="w-14 h-14 bg-coral-50 rounded-xl flex items-center justify-center text-2xl shrink-0 border border-coral-100">
-          {getSportIcon(activity.sport)}
+          {(() => {
+            const { IconComponent, size, className } = getSportIconProps(
+              activity.sport,
+              { size: 24, className: "text-coral-600" },
+            );
+            return <IconComponent size={size} className={className} />;
+          })()}
         </div>
 
         {/* Activity Details */}

@@ -13,7 +13,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
-import { sports } from "../config/sports";
+import { sports, getSportIconProps } from "../config/sports";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -363,11 +363,28 @@ export default function Profile() {
                         key={sportId}
                         className="flex items-center gap-2 px-3 py-1 bg-coral-100 text-coral-600 rounded-full text-sm"
                       >
-                        <span>
-                          {sport
-                            ? `${sport.icon} ${sport.label}`
-                            : `Unknown sport: ${sportId}`}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {sport ? (
+                            <>
+                              {(() => {
+                                const { IconComponent, size, className } =
+                                  getSportIconProps(sportId, {
+                                    size: 16,
+                                    className: "text-coral-600",
+                                  });
+                                return (
+                                  <IconComponent
+                                    size={size}
+                                    className={className}
+                                  />
+                                );
+                              })()}
+                              <span>{sport.label}</span>
+                            </>
+                          ) : (
+                            <span>Unknown sport: {sportId}</span>
+                          )}
+                        </div>
                         <button
                           onClick={() => removeSport(sportId)}
                           className="text-coral-500 hover:text-red-500 cursor-pointer"
@@ -403,7 +420,19 @@ export default function Profile() {
                           onClick={() => addSport(sport.id)}
                           className="flex items-center gap-2 p-2 text-left hover:bg-white rounded-lg transition-colors cursor-pointer"
                         >
-                          <span className="text-xl">{sport.icon}</span>
+                          {(() => {
+                            const { IconComponent, size, className } =
+                              getSportIconProps(sport.id, {
+                                size: 20,
+                                className: "text-slate-600",
+                              });
+                            return (
+                              <IconComponent
+                                size={size}
+                                className={className}
+                              />
+                            );
+                          })()}
                           <span className="text-sm">{sport.label}</span>
                         </button>
                       ))}
@@ -435,14 +464,28 @@ export default function Profile() {
                           );
                         }
                         return (
-                          <span
-                            key={sportId}
-                            className="px-3 py-1 bg-coral-100 text-coral-600 rounded-full text-sm"
-                          >
-                            {sport
-                              ? `${sport.icon} ${sport.label}`
-                              : `Unknown: ${sportId}`}
-                          </span>
+                          <div className="flex items-center gap-2 px-3 py-1 bg-coral-100 text-coral-600 rounded-full text-sm">
+                            {sport ? (
+                              <>
+                                {(() => {
+                                  const { IconComponent, size, className } =
+                                    getSportIconProps(sportId, {
+                                      size: 14,
+                                      className: "text-coral-600",
+                                    });
+                                  return (
+                                    <IconComponent
+                                      size={size}
+                                      className={className}
+                                    />
+                                  );
+                                })()}
+                                <span>{sport.label}</span>
+                              </>
+                            ) : (
+                              <span>Unknown: {sportId}</span>
+                            )}
+                          </div>
                         );
                       })}
                   </div>
