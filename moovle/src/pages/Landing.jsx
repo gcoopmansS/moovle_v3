@@ -74,17 +74,17 @@ export default function Landing() {
           </div>
         </header>
 
-        <div className="pt-20 pb-12 px-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="pt-12 pb-12 px-4 min-h-[calc(100vh-80px)] flex items-center">
+          <div className="max-w-6xl mx-auto w-full">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
               {/* Left side - Hero content */}
-              <div className="space-y-8">
+              <div className="space-y-8 order-2 lg:order-1">
                 <div className="space-y-6">
-                  <h1 className="text-5xl lg:text-6xl font-bold text-slate-800 leading-tight">
+                  <h1 className="text-4xl lg:text-5xl font-bold text-slate-800 leading-tight max-w-lg">
                     Join real activities
                     <span className="text-coral-500 block">near you today</span>
                   </h1>
-                  <p className="text-xl text-slate-600 leading-relaxed max-w-lg">
+                  <p className="text-lg text-slate-500 leading-relaxed max-w-md">
                     Connect with locals through sports you love. Real people,
                     real activities, happening right around you.
                   </p>
@@ -94,16 +94,16 @@ export default function Landing() {
                 </div>
 
                 {/* Features */}
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 bg-coral-100 rounded-lg flex items-center justify-center shrink-0">
                       <Calendar className="text-coral-500" size={20} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-800">
+                      <h3 className="font-semibold text-slate-800 mb-1">
                         Create Activities
                       </h3>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-slate-600 leading-relaxed">
                         Host tennis matches, group runs, bike rides at your
                         favorite spots
                       </p>
@@ -115,10 +115,10 @@ export default function Landing() {
                       <Users className="text-blue-500" size={20} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-800">
+                      <h3 className="font-semibold text-slate-800 mb-1">
                         Connect with Mates
                       </h3>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-slate-600 leading-relaxed">
                         Find workout partners, join pickup games, never train
                         alone again
                       </p>
@@ -130,10 +130,10 @@ export default function Landing() {
                       <MapPin className="text-green-500" size={20} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-800">
+                      <h3 className="font-semibold text-slate-800 mb-1">
                         Real Locations
                       </h3>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-slate-600 leading-relaxed">
                         Meet at parks, gyms, courts, and trails in your
                         neighborhood
                       </p>
@@ -145,10 +145,10 @@ export default function Landing() {
                       <Zap className="text-purple-500" size={20} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-800">
+                      <h3 className="font-semibold text-slate-800 mb-1">
                         Stay Updated
                       </h3>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-slate-600 leading-relaxed">
                         Know when friends schedule games or need one more player
                       </p>
                     </div>
@@ -157,8 +157,8 @@ export default function Landing() {
               </div>
 
               {/* Right side - Auth form */}
-              <div className="max-w-md mx-auto lg:mx-0 opacity-0 translate-y-4 animate-[fadeInUp_0.8s_ease-out_0.3s_forwards]">
-                <div className="bg-white rounded-2xl shadow-xl p-8">
+              <div className="w-full max-w-md mx-auto lg:mx-0 order-1 lg:order-2">
+                <div className="bg-white rounded-2xl shadow-xl p-10">
                   <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold text-slate-800 mb-2">
                       {isSignUp ? "Join Moovle" : "Welcome back"}
@@ -259,7 +259,7 @@ export default function Landing() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-coral-500 text-white py-3 rounded-xl font-semibold hover:bg-coral-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-coral-500 text-white py-4 rounded-xl font-semibold hover:bg-coral-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg cursor-pointer"
                     >
                       {loading ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -272,7 +272,7 @@ export default function Landing() {
                     </button>
 
                     {/* Trust hint */}
-                    <p className="text-xs text-slate-500 text-center mt-3">
+                    <p className="text-xs text-slate-500 text-center mt-4">
                       {isSignUp
                         ? "Free to join • No spam • Takes 30 seconds"
                         : "Welcome back to your sports community"}
@@ -280,7 +280,7 @@ export default function Landing() {
                   </form>
 
                   {/* Toggle between Sign Up / Sign In */}
-                  <div className="mt-6 text-center">
+                  <div className="mt-8 text-center">
                     <button
                       onClick={() => {
                         setIsSignUp(!isSignUp);
@@ -289,7 +289,7 @@ export default function Landing() {
                         setEmail("");
                         setPassword("");
                       }}
-                      className="text-coral-500 hover:text-coral-600 transition-colors font-medium underline decoration-coral-200 hover:decoration-coral-500"
+                      className="text-slate-500 hover:text-coral-500 transition-colors font-medium text-sm cursor-pointer"
                     >
                       {isSignUp
                         ? "Already have an account? Sign in"
