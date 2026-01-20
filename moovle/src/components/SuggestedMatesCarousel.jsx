@@ -1,8 +1,14 @@
 import { useRef, useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserSearch } from "lucide-react";
 import SuggestedMateCard from "./SuggestedMateCard";
+import SuggestedMateCardSkeleton from "./SuggestedMateCardSkeleton";
+import EmptyState from "./EmptyState";
 
-export default function SuggestedMatesCarousel({ items, onAddMate }) {
+export default function SuggestedMatesCarousel({
+  items,
+  onAddMate,
+  isLoading = false,
+}) {
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -25,7 +31,10 @@ export default function SuggestedMatesCarousel({ items, onAddMate }) {
       el.removeEventListener("scroll", checkScroll);
       window.removeEventListener("resize", checkScroll);
     };
-  }, [items]);
+  }, [items, isLoading]);
+
+  // Only show scroll arrows when we have actual content (not loading or empty)
+  const showScrollArrows = !isLoading && items.length > 0;
 
   // Scroll by one card width
   const scrollBy = (dir) => {
@@ -38,7 +47,7 @@ export default function SuggestedMatesCarousel({ items, onAddMate }) {
 
   return (
     <div className="relative">
-      {canScrollLeft && (
+      {showScrollArrows && canScrollLeft && (
         <button
           className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full shadow p-2 hover:bg-gray-50"
           onClick={() => scrollBy(-1)}
@@ -47,7 +56,7 @@ export default function SuggestedMatesCarousel({ items, onAddMate }) {
           <ChevronLeft size={22} />
         </button>
       )}
-      {canScrollRight && (
+      {showScrollArrows && canScrollRight && (
         <button
           className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full shadow p-2 hover:bg-gray-50"
           onClick={() => scrollBy(1)}
@@ -56,43 +65,71 @@ export default function SuggestedMatesCarousel({ items, onAddMate }) {
           <ChevronRight size={22} />
         </button>
       )}
-      <div
-        ref={scrollRef}
-        className="flex gap-0 overflow-x-auto pb-2 hide-scrollbar snap-x snap-mandatory"
-        style={{ scrollBehavior: "smooth" }}
-      >
-        {items.length === 0
-          ? // Empty state: show 3 skeletons
-            Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="carousel-card snap-center shrink-0 w-[80vw] max-w-xs bg-gray-100 rounded-xl border border-gray-200 h-32 animate-pulse flex flex-col items-center justify-center p-3"
-              >
-                <div className="w-10 h-10 bg-gray-300 rounded-full mb-2" />
-                <div className="h-3 w-20 bg-gray-300 rounded mb-1" />
-                <div className="h-2 w-14 bg-gray-200 rounded mb-1" />
-                <div className="flex gap-1 mt-1">
-                  <div className="h-3 w-10 bg-gray-200 rounded-full" />
-                  <div className="h-3 w-8 bg-gray-200 rounded-full" />
-                </div>
-              </div>
-            ))
-          : items.map((sugg) => (
-              <div
-                key={sugg.profile.id}
-                className="carousel-card snap-center shrink-0 w-[80vw] max-w-[170px] flex items-center justify-center"
-              >
-                <SuggestedMateCard
-                  profile={sugg.profile}
-                  reasons={sugg.reasons}
-                  mutualCount={sugg.metrics?.mutualCount || 0}
-                  requested={sugg.requested}
-                  loading={sugg.loading}
-                  onAdd={() => onAddMate(sugg.profile.id)}
-                />
-              </div>
-            ))}
-      </div>
+      {isLoading ? (
+        // Loading state: show 3 skeletons with matching layout
+        <div
+          ref={scrollRef}
+          className="flex gap-0 overflow-x-auto pb-2 hide-scrollbar snap-x snap-mandatory"
+          style={{ scrollBehavior: "smooth" }}
+        >
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="carousel-card snap-center shrink-0 w-[80vw] max-w-[170px] flex items-center justify-center"
+            >
+              <SuggestedMateCardSkeleton />
+            </div>
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        // Empty state: show message
+        <div className="mt-4">
+          <EmptyState
+            title="No suggested mates right now"
+            description="Try updating your interests or check back later."
+            icon={UserSearch}
+            primaryAction={{
+              label: "Complete Profile",
+              to: "/app/profile",
+            }}
+            secondaryAction={{
+              label: "Search People",
+              onClick: () => {
+                // Focus the search input
+                const searchInput = document.querySelector(
+                  'input[placeholder*="Search for people"]',
+                );
+                if (searchInput) {
+                  searchInput.focus();
+                }
+              },
+            }}
+          />
+        </div>
+      ) : (
+        // Populated state: show actual suggested mates
+        <div
+          ref={scrollRef}
+          className="flex gap-0 overflow-x-auto pb-2 hide-scrollbar snap-x snap-mandatory"
+          style={{ scrollBehavior: "smooth" }}
+        >
+          {items.map((sugg) => (
+            <div
+              key={sugg.profile.id}
+              className="carousel-card snap-center shrink-0 w-[80vw] max-w-[170px] flex items-center justify-center"
+            >
+              <SuggestedMateCard
+                profile={sugg.profile}
+                reasons={sugg.reasons}
+                mutualCount={sugg.metrics?.mutualCount || 0}
+                requested={sugg.requested}
+                loading={sugg.loading}
+                onAdd={() => onAddMate(sugg.profile.id)}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

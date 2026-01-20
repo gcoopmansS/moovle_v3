@@ -586,32 +586,8 @@ export default function Mates() {
               loading: actionLoading === sugg.profile.id,
             }))}
             onAddMate={sendMateRequest}
+            isLoading={loadingSuggestions}
           />
-          {!loadingSuggestions && suggestedMates.length === 0 && (
-            <div className="mt-8">
-              <EmptyState
-                title="No mate suggestions yet"
-                description="Suggestions are based on shared sports interests, location proximity, and activity patterns. Complete your profile to get better matches!"
-                icon={UserSearch}
-                primaryAction={{
-                  label: "Complete Profile",
-                  to: "/app/profile",
-                }}
-                secondaryAction={{
-                  label: "Search People",
-                  onClick: () => {
-                    // Focus the search input
-                    const searchInput = document.querySelector(
-                      'input[placeholder*="Search for people"]',
-                    );
-                    if (searchInput) {
-                      searchInput.focus();
-                    }
-                  },
-                }}
-              />
-            </div>
-          )}
         </div>
       )}
 
