@@ -9,8 +9,9 @@ import {
   Lock,
   UserPlus,
   UserMinus,
+  Check,
 } from "lucide-react";
-import { getSportIcon, formatDuration } from "../config/sports";
+import { getSportIconProps, formatDuration } from "../config/sports";
 
 export default function ActivityModal({
   activity,
@@ -103,7 +104,13 @@ export default function ActivityModal({
 
           <div className="flex items-start gap-6 pr-12">
             <div className="w-16 h-16 bg-coral-50 rounded-xl flex items-center justify-center text-2xl border border-coral-100">
-              {getSportIcon(activity.sport)}
+              {(() => {
+                const { IconComponent, size, className } = getSportIconProps(
+                  activity.sport,
+                  { size: 28, className: "text-coral-600" },
+                );
+                return <IconComponent size={size} className={className} />;
+              })()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
@@ -278,7 +285,7 @@ export default function ActivityModal({
                   activity.participants
                     .filter(
                       (participant) =>
-                        participant.full_name !== activity.organizer?.full_name
+                        participant.full_name !== activity.organizer?.full_name,
                     )
                     .slice(0, 5)
                     .map((participant, index) => (
@@ -298,13 +305,13 @@ export default function ActivityModal({
                 {/* Show "more participants" if needed */}
                 {activity.participants &&
                   activity.participants.filter(
-                    (p) => p.full_name !== activity.organizer?.full_name
+                    (p) => p.full_name !== activity.organizer?.full_name,
                   ).length > 5 && (
                     <div className="text-center pt-2">
                       <span className="text-sm text-slate-500">
                         +
                         {activity.participants.filter(
-                          (p) => p.full_name !== activity.organizer?.full_name
+                          (p) => p.full_name !== activity.organizer?.full_name,
                         ).length - 5}{" "}
                         more participants
                       </span>
@@ -315,7 +322,7 @@ export default function ActivityModal({
                 {(!activity.participants ||
                   activity.participants.length === 0 ||
                   activity.participants.every(
-                    (p) => p.full_name === activity.organizer?.full_name
+                    (p) => p.full_name === activity.organizer?.full_name,
                   )) && (
                   <div className="text-center py-4 text-slate-500 text-sm">
                     {isHost
@@ -350,7 +357,7 @@ export default function ActivityModal({
                         width: `${Math.min(
                           ((currentCount || 0) / activity.max_participants) *
                             100,
-                          100
+                          100,
                         )}%`,
                       }}
                     ></div>
@@ -367,7 +374,7 @@ export default function ActivityModal({
               ) : joined ? (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg font-medium border border-green-200">
-                    <span className="text-green-500">✓</span>
+                    <Check size={16} className="text-green-500" />
                     Joined
                   </div>
                   <button

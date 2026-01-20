@@ -9,11 +9,17 @@ import {
   User,
   Search,
   X,
+  Lightbulb,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
-import { sports, visibilityOptions, getSportById } from "../config/sports";
+import {
+  sports,
+  visibilityOptions,
+  getSportById,
+  getSportIconProps,
+} from "../config/sports";
 import { notifyActivityInvite } from "../lib/notifications";
 import LocationInput from "../components/LocationInput";
 
@@ -349,7 +355,19 @@ export default function CreateActivity() {
                     : "text-slate-600 border-gray-200 bg-white hover:bg-gray-50"
                 }`}
               >
-                <span>{sport.icon}</span>
+                {(() => {
+                  const { IconComponent, size, className } = getSportIconProps(
+                    sport.id,
+                    {
+                      size: 16,
+                      className:
+                        selectedSport === sport.id
+                          ? "text-white"
+                          : "text-slate-500",
+                    },
+                  );
+                  return <IconComponent size={size} className={className} />;
+                })()}
                 {sport.label}
               </button>
             ))}
@@ -788,11 +806,17 @@ export default function CreateActivity() {
                   {/* Helpful tip */}
                   {selectedInvites.length > 0 && (
                     <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                      <p className="text-xs text-slate-600">
-                        💡 <strong>Tip:</strong> You can invite more friends
-                        than the maximum participants. The first {capacity - 1}{" "}
-                        to join will get a spot.
-                      </p>
+                      <div className="flex items-start gap-2 text-xs text-slate-600">
+                        <Lightbulb
+                          size={14}
+                          className="text-slate-400 mt-0.5 shrink-0"
+                        />
+                        <p>
+                          <strong>Tip:</strong> You can invite more friends than
+                          the maximum participants. The first {capacity - 1} to
+                          join will get a spot.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

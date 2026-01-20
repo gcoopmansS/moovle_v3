@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
-import { sports } from "../config/sports";
+import { sports, getSportIconProps } from "../config/sports";
 import { notifyActivityJoined, notifyActivityLeft } from "../lib/notifications";
 import ActivityCard from "../components/ActivityCard";
 import EmptyState from "../components/EmptyState";
@@ -593,7 +593,20 @@ export default function Feed() {
                 : "bg-white text-slate-600 border border-gray-200 hover:bg-gray-50"
             }`}
           >
-            {sport.icon && <span>{sport.icon}</span>}
+            {sport.icon &&
+              (() => {
+                const { IconComponent, size, className } = getSportIconProps(
+                  sport.id,
+                  {
+                    size: 16,
+                    className:
+                      selectedSport === sport.id
+                        ? "text-white"
+                        : "text-slate-500",
+                  },
+                );
+                return <IconComponent size={size} className={className} />;
+              })()}
             {sport.label}
           </button>
         ))}

@@ -4,17 +4,26 @@
  * Each sport can have the following properties:
  * - id: Unique identifier (used in database)
  * - label: Display name
- * - icon: Emoji icon
+ * - icon: Custom SVG icon component
  * - supportsDistance: Whether users can specify distance instead of duration
  * - defaultDistance: Default distance placeholder (in km) if supportsDistance is true
  * - defaultDuration: Default duration value (in minutes)
  */
 
+import {
+  RunningIcon,
+  CyclingIcon,
+  WalkingIcon,
+  TennisIcon,
+  PadelIcon,
+  SwimmingIcon,
+} from "./sportIcons.jsx";
+
 export const sports = [
   {
     id: "running",
     label: "Running",
-    icon: "🏃",
+    icon: RunningIcon,
     supportsDistance: true,
     defaultDistance: 5,
     defaultDuration: 30,
@@ -23,7 +32,7 @@ export const sports = [
   {
     id: "cycling",
     label: "Cycling",
-    icon: "🚴",
+    icon: CyclingIcon,
     supportsDistance: true,
     defaultDistance: 20,
     defaultDuration: 60,
@@ -32,7 +41,7 @@ export const sports = [
   {
     id: "walking",
     label: "Walking",
-    icon: "🚶",
+    icon: WalkingIcon,
     supportsDistance: true,
     defaultDistance: 5,
     defaultDuration: 60,
@@ -41,7 +50,7 @@ export const sports = [
   {
     id: "tennis",
     label: "Tennis",
-    icon: "🎾",
+    icon: TennisIcon,
     supportsDistance: false,
     defaultDuration: 60,
     capacityOptions: [2, 4],
@@ -49,7 +58,7 @@ export const sports = [
   {
     id: "padel",
     label: "Padel",
-    icon: "🎾",
+    icon: PadelIcon,
     supportsDistance: false,
     defaultDuration: 60,
     capacityOptions: [2, 4],
@@ -57,7 +66,7 @@ export const sports = [
   {
     id: "swimming",
     label: "Swimming",
-    icon: "🏊",
+    icon: SwimmingIcon,
     supportsDistance: true,
     defaultDistance: 1,
     defaultDuration: 45,
@@ -70,12 +79,21 @@ export const getSportById = (id) => sports.find((s) => s.id === id);
 
 export const getSportIcon = (id) => {
   const sport = getSportById(id);
-  return sport?.icon || "🏃";
+  return sport?.icon || RunningIcon;
 };
 
 export const getSportLabel = (id) => {
   const sport = getSportById(id);
   return sport?.label || id;
+};
+
+// Helper to get sport icon props for consistent styling
+export const getSportIconProps = (
+  id,
+  { size = 16, className = "text-slate-600" } = {},
+) => {
+  const IconComponent = getSportIcon(id);
+  return { IconComponent, size, className };
 };
 
 // Duration options in minutes (value stored in DB) with display labels
