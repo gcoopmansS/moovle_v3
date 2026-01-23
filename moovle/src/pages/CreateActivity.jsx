@@ -586,10 +586,10 @@ export default function CreateActivity() {
               return (
                 <label
                   key={option.id}
-                  className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-200 transform hover:-translate-y-0.5 hover:shadow-md ${
+                  className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
                     visibility === option.id
-                      ? "border-brand bg-gradient-to-r from-coral-50 to-brand/10 shadow-sm"
-                      : "border-gray-200 bg-surface hover:bg-gray-50"
+                      ? "border-teal-300 bg-teal-50 shadow-sm"
+                      : "border-slate-200 bg-white hover:bg-slate-50"
                   }`}
                 >
                   <input
@@ -615,8 +615,8 @@ export default function CreateActivity() {
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center ${
                       visibility === option.id
-                        ? "bg-brand text-white"
-                        : "bg-gray-100 text-slate-500"
+                        ? "bg-teal-100 text-teal-700"
+                        : "bg-slate-100 text-slate-400"
                     }`}
                   >
                     <IconComponent size={20} />
@@ -625,8 +625,8 @@ export default function CreateActivity() {
                     <p
                       className={`font-medium ${
                         visibility === option.id
-                          ? "text-coral-600"
-                          : "text-slate-800"
+                          ? "text-slate-800"
+                          : "text-slate-600"
                       }`}
                     >
                       {option.label}
@@ -638,12 +638,12 @@ export default function CreateActivity() {
                   <div
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                       visibility === option.id
-                        ? "border-coral-500"
-                        : "border-gray-300"
+                        ? "border-teal-500"
+                        : "border-slate-300"
                     }`}
                   >
                     {visibility === option.id && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-coral-500"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-teal-500"></div>
                     )}
                   </div>
                 </label>
@@ -838,7 +838,7 @@ export default function CreateActivity() {
           disabled={isSubmitting || !isFormValid()}
           className={`w-full py-4 rounded-xl font-semibold transition-all duration-200 transform ${
             isSubmitting || !isFormValid()
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              ? "bg-slate-200 text-slate-500 cursor-not-allowed"
               : `${primaryButton.className} w-full py-4`
           }`}
         >
