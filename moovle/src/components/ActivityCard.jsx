@@ -1,5 +1,10 @@
 import { MapPin, Clock, Users, Lock, Globe, Check } from "lucide-react";
 import { getSportIconProps, formatDuration } from "../config/sports";
+import {
+  compactSecondaryButton,
+  primaryButton,
+  compactChip,
+} from "./ui/styles";
 
 export default function ActivityCard({
   activity,
@@ -23,7 +28,7 @@ export default function ActivityCard({
   let action = null;
   if (isHost) {
     action = (
-      <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-sm font-semibold border border-slate-200">
+      <span className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold border border-slate-300">
         Host
       </span>
     );
@@ -31,13 +36,13 @@ export default function ActivityCard({
     action = (
       <div className="flex items-center gap-2">
         <button
-          className="border border-coral-500 text-coral-500 bg-white px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-coral-50 transition-colors cursor-pointer"
+          className={`${compactSecondaryButton.className} flex items-center gap-1.5`}
           disabled={loading}
         >
           Joined <Check size={16} className="text-green-500" />
         </button>
         <button
-          className="text-xs text-slate-400 hover:text-coral-500 underline cursor-pointer"
+          className="text-xs text-slate-400 hover:text-teal-600 underline cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             onLeave();
@@ -63,8 +68,8 @@ export default function ActivityCard({
       const isInviteOnlyAndInvited =
         activity.visibility === "invite_only" && isInvited;
       const buttonClasses = isInviteOnlyAndInvited
-        ? "bg-amber-500 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-amber-600 transition-colors shadow-md cursor-pointer ring-2 ring-amber-200"
-        : "bg-coral-500 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-coral-600 transition-colors shadow-sm cursor-pointer";
+        ? "px-4 py-1.5 rounded-lg text-sm font-semibold bg-amber-400 text-white transition-all duration-200 transform hover:shadow-lg hover:-translate-y-0.5 hover:bg-amber-500 active:translate-y-0 shadow-md cursor-pointer ring-2 ring-amber-200"
+        : `${primaryButton.className} text-sm py-1.5 px-4`;
 
       action = (
         <button
@@ -86,7 +91,7 @@ export default function ActivityCard({
   }
 
   const cardClasses = [
-    "bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-gray-300 transition-all duration-200 cursor-pointer",
+    "bg-surface rounded-xl border border-slate-200 p-6 shadow-card hover:shadow-lg hover:border-slate-300 transition-all duration-200 cursor-pointer transform hover:-translate-y-2 hover:scale-[1.01] active:scale-[0.98] active:translate-y-0",
     isPast ? "opacity-60 grayscale" : "",
   ].join(" ");
 
@@ -94,11 +99,11 @@ export default function ActivityCard({
     <div className={cardClasses} onClick={onClick}>
       <div className="flex items-start gap-4">
         {/* Sport Icon */}
-        <div className="w-14 h-14 bg-coral-50 rounded-xl flex items-center justify-center text-2xl shrink-0 border border-coral-100">
+        <div className="w-14 h-14 bg-teal-50 rounded-xl flex items-center justify-center text-2xl shrink-0 border border-teal-100">
           {(() => {
             const { IconComponent, size, className } = getSportIconProps(
               activity.sport,
-              { size: 24, className: "text-coral-600" },
+              { size: 24, className: "text-teal-600" },
             );
             return <IconComponent size={size} className={className} />;
           })()}
@@ -107,11 +112,11 @@ export default function ActivityCard({
         {/* Activity Details */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="text-xs font-semibold text-coral-600 uppercase tracking-wide">
+            <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">
               {activity.sport}
             </span>
             {isHost && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-coral-100 text-coral-700">
+              <span className={compactChip.getClassName(true)}>
                 Your activity
               </span>
             )}
@@ -123,11 +128,11 @@ export default function ActivityCard({
             </span>
           </div>
 
-          <h3 className="font-bold text-lg text-slate-800 mb-3 leading-tight">
+          <h3 className="font-bold text-xl text-slate-900 mb-3 leading-tight">
             {activity.title}
           </h3>
 
-          <div className="flex flex-wrap gap-4 text-xs text-slate-500 mb-3">
+          <div className="flex flex-wrap gap-4 text-xs text-text-body mb-3">
             <span className="flex items-center gap-1">
               <Clock size={12} />
               {formatDate(activity.date_time)} •{" "}
@@ -142,14 +147,14 @@ export default function ActivityCard({
 
           {/* Prominent participant count */}
           <div className="flex items-center justify-between mb-3">
-            <span className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
+            <span className="flex items-center gap-1.5 text-sm font-medium text-text-body">
               <Users size={14} />
-              <span className="font-semibold text-slate-800">
+              <span className="font-semibold text-heading">
                 {currentCount || 0}
               </span>
-              <span className="text-slate-500">joined</span>
+              <span className="text-text-muted">joined</span>
               {capacity !== "∞" && (
-                <span className="text-slate-400 text-xs">of {capacity}</span>
+                <span className="text-text-muted text-xs">of {capacity}</span>
               )}
             </span>
           </div>
@@ -157,10 +162,10 @@ export default function ActivityCard({
           {/* Organizer and Actions */}
           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-coral-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+              <div className="w-6 h-6 bg-slate-400 rounded-full flex items-center justify-center text-white text-xs font-semibold">
                 {activity.organizer?.full_name?.charAt(0) || "?"}
               </div>
-              <span className="text-sm text-slate-600 font-medium">
+              <span className="text-sm text-text-body font-medium">
                 {activity.organizer?.full_name || "Unknown"}
               </span>
             </div>
@@ -177,7 +182,7 @@ export default function ActivityCard({
                       return (
                         <div
                           key={p.id}
-                          className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600 overflow-hidden shadow-sm"
+                          className="w-7 h-7 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center text-xs font-semibold text-slate-700 overflow-hidden shadow-sm"
                           title={hasName ? p.full_name : ""}
                         >
                           {p.avatar_url ? (

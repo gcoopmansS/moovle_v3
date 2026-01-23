@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { primaryButton, secondaryButton } from "./ui/styles";
 
 export default function EmptyState({
   title,
@@ -18,28 +19,26 @@ export default function EmptyState({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-6">
-      <div className="w-16 h-16 rounded-full bg-coral-500 border-4 border-white shadow-md flex items-center justify-center mb-6">
+    <div className="flex flex-col items-center justify-center py-10 px-6">
+      <div className="w-20 h-20 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mb-6">
         {IconComponent ? (
-          <IconComponent className="text-white" size={24} />
+          <IconComponent className="text-slate-500" size={32} />
         ) : (
-          <span className="text-white text-2xl font-semibold">+</span>
+          <span className="text-slate-500 text-3xl font-semibold">+</span>
         )}
       </div>
 
-      <h3 className="text-xl font-semibold text-slate-700 mb-3 text-center">
-        {title}
-      </h3>
+      <h3 className="text-lg font-semibold mb-2 text-center">{title}</h3>
 
-      <p className="text-slate-500 mb-8 text-center max-w-md leading-relaxed">
+      <p className="text-slate-600 mb-6 text-center max-w-sm leading-relaxed text-sm">
         {description}
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-sm">
+      <div className="flex flex-col sm:flex-row gap-3 justify-center w-full max-w-xs">
         {primaryAction && (
           <button
             onClick={() => handleAction(primaryAction)}
-            className="px-6 py-3 rounded-xl bg-coral-500 text-white font-semibold shadow-sm hover:bg-coral-600 transition-colors"
+            className={primaryButton.className}
           >
             {primaryAction.label}
           </button>
@@ -48,7 +47,7 @@ export default function EmptyState({
         {secondaryAction && (
           <button
             onClick={() => handleAction(secondaryAction)}
-            className="px-6 py-3 rounded-xl bg-white border border-coral-500 text-coral-500 font-semibold shadow-sm hover:bg-coral-50 transition-colors"
+            className={secondaryButton.className}
           >
             {secondaryAction.label}
           </button>

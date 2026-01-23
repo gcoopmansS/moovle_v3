@@ -85,8 +85,8 @@ export default function SuggestedMatesCarousel({
         // Empty state: show message
         <div className="mt-4">
           <EmptyState
-            title="No suggested mates right now"
-            description="Try updating your interests or check back later."
+            title="Looking for mates?"
+            description="Update your interests or search for people!"
             icon={UserSearch}
             primaryAction={{
               label: "Complete Profile",

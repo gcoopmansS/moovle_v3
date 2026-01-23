@@ -43,7 +43,7 @@ export default function NudgeCard({
   }
 
   return (
-    <div className="bg-gradient-to-r from-coral-50 to-orange-50 rounded-xl border border-coral-200 p-4 mb-6">
+    <div className="bg-gradient-to-r from-cyan-50 to-slate-50 rounded-xl border border-cyan-100 p-4 mb-6 transition-all duration-300 transform hover:shadow-md hover:-translate-y-0.5 hover:scale-[1.01]">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <h3 className="font-semibold text-slate-800 mb-1">{title}</h3>
@@ -51,7 +51,7 @@ export default function NudgeCard({
 
           <button
             onClick={handleCTA}
-            className="inline-flex items-center gap-2 bg-coral-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-coral-600 transition-colors"
+            className="inline-flex items-center gap-2 bg-teal-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-600 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.95]"
           >
             {ctaText}
             <ArrowRight size={14} />

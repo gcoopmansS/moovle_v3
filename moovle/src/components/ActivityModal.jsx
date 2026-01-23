@@ -92,7 +92,7 @@ export default function ActivityModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-100">
+      <div className="bg-surface rounded-3xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-100">
         {/* Header */}
         <div className="relative p-8 pb-6">
           <button
@@ -336,7 +336,7 @@ export default function ActivityModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="bg-white border-t border-gray-100 p-6">
+        <div className="bg-surface border-t border-gray-100 p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="text-sm text-slate-600">

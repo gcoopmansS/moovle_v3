@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Mail, Lock, User, ArrowRight } from "lucide-react";
+import { primaryButton } from "../components/ui/styles";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -39,19 +40,19 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">
-            <span className="text-coral-500">M</span>
+            <span className="text-teal-500">M</span>
             <span className="text-slate-800">oovle</span>
           </h1>
           <p className="text-slate-500">Find activities with your mates</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-surface rounded-2xl shadow-card border border-gray-100 p-8">
           <h2 className="text-2xl font-bold text-slate-800 mb-6">
             {isSignUp ? "Create an account" : "Welcome back"}
           </h2>
@@ -71,7 +72,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-text-body mb-1">
                   Full Name
                 </label>
                 <div className="relative">
@@ -85,7 +86,7 @@ export default function Login() {
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="John Doe"
                     required={isSignUp}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -106,7 +107,7 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 />
               </div>
             </div>
@@ -127,7 +128,7 @@ export default function Login() {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>
             </div>
@@ -135,7 +136,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-coral-500 text-white py-3 rounded-xl font-semibold hover:bg-coral-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className={`${primaryButton.className} w-full py-3 flex items-center justify-center gap-2`}
             >
               {loading ? (
                 "Loading..."
@@ -155,7 +156,7 @@ export default function Login() {
                 setError("");
                 setMessage("");
               }}
-              className="text-coral-500 hover:underline text-sm cursor-pointer"
+              className="text-brand hover:underline text-sm cursor-pointer"
             >
               {isSignUp
                 ? "Already have an account? Sign in"
