@@ -10,6 +10,7 @@ import ActivityCard from "../components/ActivityCard";
 import EmptyState from "../components/EmptyState";
 import NudgeCard from "../components/NudgeCard";
 import Modal from "../components/Modal";
+import { chip } from "../components/ui/styles";
 
 const dateFilters = ["All", "Today", "Tomorrow", "This Week"];
 
@@ -395,13 +396,24 @@ export default function Feed() {
       // Apply date filter
       if (selectedDate === "Today") {
         const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
         query = query
           .gte("date_time", today.toISOString())
           .lt("date_time", tomorrow.toISOString());
+      } else if (selectedDate === "Tomorrow") {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0); // Start of tomorrow
+        const dayAfterTomorrow = new Date(tomorrow);
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+        query = query
+          .gte("date_time", tomorrow.toISOString())
+          .lt("date_time", dayAfterTomorrow.toISOString());
       } else if (selectedDate === "This Week") {
         const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
         const nextWeek = new Date(today);
         nextWeek.setDate(nextWeek.getDate() + 7);
         query = query
@@ -506,9 +518,9 @@ export default function Feed() {
     if (createdActivitiesCount === 0) {
       return {
         nudgeKey: "create_activity",
-        title: "Create your first activity",
+        title: "Let's get started!",
         description:
-          "Be the host! Create an activity and invite others to join you.",
+          "Be the first! Create an activity and invite others to join you.",
         ctaText: "Create activity",
         ctaTo: "/app/create-activity",
       };
@@ -544,10 +556,12 @@ export default function Feed() {
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 mb-1">
-          Hey, {firstName} 👋
+        <h1 className="text-3xl font-bold mb-2 text-slate-900">
+          Hey {firstName}
         </h1>
-        <p className="text-slate-500">Find activities with your mates</p>
+        <p className="text-slate-600 text-lg">
+          Find activities with your mates
+        </p>
       </div>
 
       {/* Search */}
@@ -560,25 +574,31 @@ export default function Feed() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+          className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-surface focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
         />
       </div>
 
       {/* Date Filters */}
-      <div className="flex gap-2 mb-4">
-        {dateFilters.map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setSelectedDate(filter)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-              selectedDate === filter
-                ? "bg-slate-800 text-white"
-                : "bg-white text-slate-600 border border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            {filter}
-          </button>
-        ))}
+      <div className="flex gap-6 mb-4 border-b border-slate-200">
+        {dateFilters.map((filter) => {
+          const isToday = filter === "Today";
+          const isSelected = selectedDate === filter;
+          return (
+            <button
+              key={filter}
+              onClick={() => setSelectedDate(filter)}
+              className={`px-2 py-3 text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap border-b-2 ${
+                isSelected
+                  ? isToday
+                    ? "text-green-600 border-green-600"
+                    : "text-teal-700 border-teal-500"
+                  : "text-slate-500 border-transparent hover:text-slate-700"
+              }`}
+            >
+              {filter}
+            </button>
+          );
+        })}
       </div>
 
       {/* Sport Filters */}
@@ -587,27 +607,25 @@ export default function Feed() {
           <button
             key={sport.id}
             onClick={() => setSelectedSport(sport.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
-              selectedSport === sport.id
-                ? "bg-coral-500 text-white"
-                : "bg-white text-slate-600 border border-gray-200 hover:bg-gray-50"
-            }`}
+            className={chip.getClassName(selectedSport === sport.id)}
           >
-            {sport.icon &&
-              (() => {
-                const { IconComponent, size, className } = getSportIconProps(
-                  sport.id,
-                  {
-                    size: 16,
-                    className:
-                      selectedSport === sport.id
-                        ? "text-white"
-                        : "text-slate-500",
-                  },
-                );
-                return <IconComponent size={size} className={className} />;
-              })()}
-            {sport.label}
+            <div className="flex items-center gap-1.5">
+              {sport.icon &&
+                (() => {
+                  const { IconComponent, size, className } = getSportIconProps(
+                    sport.id,
+                    {
+                      size: 16,
+                      className:
+                        selectedSport === sport.id
+                          ? "text-teal-700"
+                          : "text-slate-500",
+                    },
+                  );
+                  return <IconComponent size={size} className={className} />;
+                })()}
+              <span>{sport.label}</span>
+            </div>
           </button>
         ))}
       </div>
@@ -627,7 +645,7 @@ export default function Feed() {
       {/* Conditional Rendering */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coral-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : filteredActivities.length > 0 ? (
         <div className="space-y-4">

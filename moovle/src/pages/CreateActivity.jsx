@@ -22,6 +22,7 @@ import {
 } from "../config/sports";
 import { notifyActivityInvite } from "../lib/notifications";
 import LocationInput from "../components/LocationInput";
+import { chip, primaryButton } from "../components/ui/styles";
 
 // Map visibility icons
 const visibilityIcons = {
@@ -334,13 +335,13 @@ export default function CreateActivity() {
         >
           <ArrowLeft size={24} className="text-slate-600" />
         </button>
-        <h1 className="text-2xl font-bold text-slate-800">Create Activity</h1>
+        <h1 className="text-2xl font-bold">Create Activity</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Sport Selection */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-3">
+          <label className="block text-sm font-medium text-text-body mb-3">
             Sport
           </label>
           <div className="flex flex-wrap gap-2">
@@ -349,11 +350,7 @@ export default function CreateActivity() {
                 key={sport.id}
                 type="button"
                 onClick={() => setSelectedSport(sport.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors cursor-pointer ${
-                  selectedSport === sport.id
-                    ? "bg-coral-500 text-white border-coral-500"
-                    : "text-slate-600 border-gray-200 bg-white hover:bg-gray-50"
-                }`}
+                className={`${chip.getClassName(selectedSport === sport.id)} flex items-center gap-2`}
               >
                 {(() => {
                   const { IconComponent, size, className } = getSportIconProps(
@@ -387,7 +384,7 @@ export default function CreateActivity() {
               setTitle(e.target.value);
               handleFieldChange("title", e.target.value);
             }}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
           {(hasSubmitted || touchedFields.title) && fieldErrors.title && (
             <p className="text-red-500 text-sm mt-1">{fieldErrors.title}</p>
@@ -404,7 +401,7 @@ export default function CreateActivity() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
           />
         </div>
 
@@ -421,7 +418,7 @@ export default function CreateActivity() {
               setDateTime(e.target.value);
               handleFieldChange("dateTime", e.target.value);
             }}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
           {(hasSubmitted || touchedFields.dateTime) && fieldErrors.dateTime && (
             <p className="text-red-500 text-sm mt-1">{fieldErrors.dateTime}</p>
@@ -431,14 +428,14 @@ export default function CreateActivity() {
         {/* Duration or Distance */}
         <div>
           {supportsDistance && (
-            <div className="flex gap-2 mb-3">
+            <div className="flex mb-3 border-b border-slate-200">
               <button
                 type="button"
                 onClick={() => setDurationType("duration")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors cursor-pointer border-b-2 ${
                   durationType === "duration"
-                    ? "bg-coral-500 text-white"
-                    : "bg-gray-100 text-slate-600 hover:bg-gray-200"
+                    ? "text-teal-600 border-teal-600"
+                    : "text-slate-600 border-transparent hover:text-slate-800"
                 }`}
               >
                 Duration
@@ -446,10 +443,10 @@ export default function CreateActivity() {
               <button
                 type="button"
                 onClick={() => setDurationType("distance")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors cursor-pointer border-b-2 ${
                   durationType === "distance"
-                    ? "bg-coral-500 text-white"
-                    : "bg-gray-100 text-slate-600 hover:bg-gray-200"
+                    ? "text-teal-600 border-teal-600"
+                    : "text-slate-600 border-transparent hover:text-slate-800"
                 }`}
               >
                 Distance
@@ -472,7 +469,7 @@ export default function CreateActivity() {
                     setDuration(Number(e.target.value));
                     handleFieldChange("duration", Number(e.target.value));
                   }}
-                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-surface focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
                 <span className="text-slate-500 font-medium">min</span>
               </div>
@@ -500,7 +497,7 @@ export default function CreateActivity() {
                     setDistance(e.target.value);
                     handleFieldChange("distance", e.target.value);
                   }}
-                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-surface focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
                 <span className="text-slate-500 font-medium">km</span>
               </div>
@@ -536,7 +533,7 @@ export default function CreateActivity() {
             placeholder="Additional details (court number, meeting point...)"
             value={locationDetails}
             onChange={(e) => setLocationDetails(e.target.value)}
-            className="w-full mt-3 px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+            className="w-full mt-3 px-4 py-3 rounded-xl border border-gray-200 bg-surface focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
 
@@ -550,7 +547,7 @@ export default function CreateActivity() {
             <select
               value={capacity}
               onChange={(e) => setCapacity(Number(e.target.value))}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               {currentSport.capacityOptions.map((opt) => (
                 <option key={opt} value={opt}>
@@ -573,7 +570,7 @@ export default function CreateActivity() {
               }
               value={capacity}
               onChange={(e) => setCapacity(Number(e.target.value))}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           )}
         </div>
@@ -589,10 +586,10 @@ export default function CreateActivity() {
               return (
                 <label
                   key={option.id}
-                  className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                  className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-200 transform hover:-translate-y-0.5 hover:shadow-md ${
                     visibility === option.id
-                      ? "border-coral-500 bg-coral-50"
-                      : "border-gray-200 bg-white hover:bg-gray-50"
+                      ? "border-brand bg-gradient-to-r from-coral-50 to-brand/10 shadow-sm"
+                      : "border-gray-200 bg-surface hover:bg-gray-50"
                   }`}
                 >
                   <input
@@ -618,7 +615,7 @@ export default function CreateActivity() {
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center ${
                       visibility === option.id
-                        ? "bg-coral-500 text-white"
+                        ? "bg-brand text-white"
                         : "bg-gray-100 text-slate-500"
                     }`}
                   >
@@ -688,7 +685,7 @@ export default function CreateActivity() {
                         placeholder="Search friends..."
                         value={inviteSearchQuery}
                         onChange={(e) => setInviteSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-10 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent text-sm"
+                        className="w-full pl-10 pr-10 py-2 rounded-lg border border-gray-200 bg-surface focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent text-sm"
                       />
                       {inviteSearchQuery && (
                         <button
@@ -839,10 +836,10 @@ export default function CreateActivity() {
         <button
           type="submit"
           disabled={isSubmitting || !isFormValid()}
-          className={`w-full py-4 rounded-xl font-semibold transition-colors ${
+          className={`w-full py-4 rounded-xl font-semibold transition-all duration-200 transform ${
             isSubmitting || !isFormValid()
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-coral-500 text-white hover:bg-coral-600 cursor-pointer"
+              : `${primaryButton.className} w-full py-4`
           }`}
         >
           {isSubmitting ? "Creating..." : "Create Activity"}

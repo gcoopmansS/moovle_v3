@@ -1,14 +1,117 @@
 @import "tailwindcss";
 
+/*
+  Moovle Design System
+  
+  Urban, Sporty, Confident Design Language
+  
+  Semantic Tokens:
+  - bg-brand / text-brand / border-brand → Primary blue color (#2563EB)
+  - bg-brand-soft → Lighter blue for soft backgrounds (#EFF6FF)
+  - bg-brand-hover → Darker blue for hover states (#1D4ED8)
+  - bg-accent → Green accent for live/active states (#22C55E)
+  - bg-surface → White surfaces (#ffffff)
+  - bg-muted-bg → Slate background (#f8fafc)
+  - text-strong → Primary text color (#0f172a)
+  - shadow-card → Consistent card shadow with lift
+  - shadow-card-hover → Enhanced card hover shadow
+  
+  Typography:
+  - Inter font family for modern, readable text
+  - Strong hierarchy with proper contrast and spacing
+  
+  Motion:
+  - Subtle hover lift and scale effects
+  - Smooth transitions for tactile feedback
+*/
+
 @theme {
-  --color-coral-50: #fff5f5;
-  --color-coral-100: #ffe0e0;
-  --color-coral-200: #ffb8b8;
-  --color-coral-300: #ff8a8a;
-  --color-coral-400: #ff6b6b;
-  --color-coral-500: #f97068;
-  --color-coral-600: #e85550;
-  --color-coral-700: #c94040;
-  --color-coral-800: #a53030;
-  --color-coral-900: #802424;
+  /* Typography */
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Brand Colors (teal is our primary) */
+  --color-brand: #2dd4bf;
+  --color-brand-soft: #ecfeff;
+  --color-brand-hover: #14b8a6;
+  --color-accent: #22c55e;
+
+  /* Blue scale for advanced usage */
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+
+  /* Surface & Background */
+  --color-surface: #ffffff;
+  --color-muted-bg: #f8fafc;
+
+  /* Enhanced Text Colors - Urban, confident typography */
+  --color-text-strong: #0f172a;
+  --color-text-heading: #0f172a;
+  --color-text-body: #1e293b;
+  --color-text-muted: #64748b;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-card-hover:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Base Styles - Urban, sporty foundation */
+body {
+  background-color: #f8fafc; /* slate-50 */
+  color: var(--color-text-body);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Enhanced Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-text-heading);
+  font-weight: 700;
+  letter-spacing: -0.025em; /* Tighter tracking for headings */
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2.25rem; /* 36px */
+  font-weight: 800;
+  letter-spacing: -0.05em;
+}
+
+h2 {
+  font-size: 1.875rem; /* 30px */
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+h3 {
+  font-weight: 600;
+}
+
+/* Better body text readability */
+p,
+span,
+div {
+  color: var(--color-text-body);
+}
+
+/* Muted text should still be readable */
+.text-muted {
+  color: var(--color-text-muted);
 }

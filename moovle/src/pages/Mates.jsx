@@ -526,19 +526,19 @@ export default function Mates() {
     <div className="w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Mates</h1>
+        <h1 className="text-3xl font-bold">Mates</h1>
       </div>
 
       {/* Tabs */}
-      <div className="flex mb-6 bg-gray-100 p-1 rounded-lg">
+      <div className="flex mb-6 border-b border-slate-200">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 px-6 py-2 rounded-md text-sm font-medium transition-colors relative cursor-pointer ${
+            className={`flex-1 px-6 py-3 text-sm font-medium transition-all duration-200 cursor-pointer relative ${
               activeTab === tab.id
-                ? "bg-coral-500 text-white"
-                : "text-slate-600 hover:bg-gray-200"
+                ? "text-teal-600 border-b-2 border-teal-600"
+                : "text-slate-600 hover:text-slate-800"
             }`}
           >
             {tab.label}
@@ -546,8 +546,8 @@ export default function Mates() {
               <span
                 className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${
                   activeTab === tab.id
-                    ? "bg-white text-coral-500"
-                    : "bg-coral-500 text-white"
+                    ? "bg-teal-100 text-teal-700"
+                    : "bg-slate-100 text-slate-600"
                 }`}
               >
                 {tab.count}
@@ -567,7 +567,7 @@ export default function Mates() {
               </h3>
               <button
                 onClick={() => navigate("/app/profile")}
-                className="text-sm text-coral-500 hover:text-coral-600 font-medium cursor-pointer"
+                className="text-sm text-teal-600 hover:text-teal-700 font-medium cursor-pointer"
               >
                 Improve suggestions
               </button>
@@ -605,7 +605,7 @@ export default function Mates() {
             }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-surface focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
           />
           {isSearching && (
             <Loader2
@@ -630,7 +630,7 @@ export default function Mates() {
                   key={person.id}
                   className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100"
                 >
-                  <div className="w-12 h-12 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">
+                  <div className="w-12 h-12 bg-slate-400 rounded-full flex items-center justify-center text-white font-semibold">
                     {getInitial(person.full_name)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -644,7 +644,7 @@ export default function Mates() {
                   <button
                     onClick={() => sendMateRequest(person.id)}
                     disabled={actionLoading === person.id}
-                    className="flex items-center gap-2 px-4 py-2 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                   >
                     {actionLoading === person.id ? (
                       <Loader2 size={16} className="animate-spin" />
@@ -672,7 +672,7 @@ export default function Mates() {
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="animate-spin text-coral-500" size={32} />
+          <Loader2 className="animate-spin text-teal-500" size={32} />
         </div>
       )}
 

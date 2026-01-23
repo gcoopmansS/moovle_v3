@@ -1,4 +1,5 @@
 import React from "react";
+import { secondaryButton, primaryButton } from "./ui/styles";
 
 export default function Modal({
   open,
@@ -11,8 +12,8 @@ export default function Modal({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-xs relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 transition-all duration-300">
+      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-xs relative transform transition-all duration-300 scale-100 opacity-100 animate-in fade-in-0 zoom-in-95">
         <button
           className="absolute top-3 right-3 text-slate-400 hover:text-slate-600"
           onClick={onClose}
@@ -20,20 +21,18 @@ export default function Modal({
         >
           ×
         </button>
-        {title && (
-          <h3 className="text-lg font-semibold mb-4 text-slate-800">{title}</h3>
-        )}
-        <div className="mb-6 text-slate-600 text-sm">{children}</div>
+        {title && <h3 className="text-lg font-semibold mb-4">{title}</h3>}
+        <div className="mb-6 text-text-body text-sm">{children}</div>
         <div className="flex gap-2 justify-end">
           <button
-            className="px-4 py-2 rounded-lg bg-gray-100 text-slate-600 hover:bg-gray-200"
+            className={`${secondaryButton.className} text-sm py-2 px-4`}
             onClick={onClose}
             disabled={loading}
           >
             Cancel
           </button>
           <button
-            className="px-4 py-2 rounded-lg bg-coral-500 text-white hover:bg-coral-600 disabled:opacity-50"
+            className={`${primaryButton.className} text-sm py-2 px-4`}
             onClick={onConfirm}
             disabled={loading}
           >

@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { Home, Calendar, Users, Bell, Plus, LogOut } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { navItem, primaryButton } from "./ui/styles";
 
 export default function Sidebar() {
   const { profile, signOut } = useAuth();
@@ -22,12 +23,12 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white h-screen flex flex-col border-r border-gray-100 fixed left-0 top-0">
+    <aside className="w-64 bg-surface h-screen flex flex-col border-r border-gray-100 fixed left-0 top-0">
       {/* Logo */}
       <div className="p-6">
         <h1 className="text-2xl font-bold">
-          <span className="text-coral-500">M</span>
-          <span className="text-slate-800">oovle</span>
+          <span className="text-brand">M</span>
+          <span className="text-heading">oovle</span>
         </h1>
       </div>
 
@@ -36,41 +37,23 @@ export default function Sidebar() {
         {/* eslint-disable-next-line no-unused-vars */}
         <NavLink
           to="/app/feed"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-              isActive
-                ? "bg-coral-500 text-white"
-                : "text-slate-600 hover:bg-gray-50"
-            }`
-          }
+          className={({ isActive }) => navItem.getClassName(isActive)}
         >
-          {/* Feed icon here */}
+          <Home size={20} />
           <span className="font-medium">Feed</span>
         </NavLink>
         <NavLink
           to="/app/agenda"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-              isActive
-                ? "bg-coral-500 text-white"
-                : "text-slate-600 hover:bg-gray-50"
-            }`
-          }
+          className={({ isActive }) => navItem.getClassName(isActive)}
         >
-          {/* Agenda icon here */}
+          <Calendar size={20} />
           <span className="font-medium">Agenda</span>
         </NavLink>
         <NavLink
           to="/app/mates"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-              isActive
-                ? "bg-coral-500 text-white"
-                : "text-slate-600 hover:bg-gray-50"
-            }`
-          }
+          className={({ isActive }) => navItem.getClassName(isActive)}
         >
-          {/* Mates icon here */}
+          <Users size={20} />
           <span className="font-medium">Mates</span>
         </NavLink>
         {/* Notifications removed from sidebar */}
@@ -80,7 +63,7 @@ export default function Sidebar() {
       <div className="px-4 mb-6">
         <NavLink
           to="/app/create-activity"
-          className="flex items-center justify-center gap-2 w-full bg-slate-800 text-white py-3 px-4 rounded-lg hover:bg-slate-700 transition-colors"
+          className={`${primaryButton.className} flex items-center justify-center gap-2 w-full`}
         >
           <Plus size={20} />
           <span className="font-medium">New Activity</span>
@@ -93,7 +76,7 @@ export default function Sidebar() {
           to="/app/profile"
           className="px-4 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
         >
-          <div className="w-10 h-10 bg-coral-500 rounded-full flex items-center justify-center text-white font-semibold">
+          <div className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white font-semibold">
             {getInitial()}
           </div>
           <div className="flex-1 min-w-0">

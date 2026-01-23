@@ -276,8 +276,8 @@ export default function Agenda() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <EmptyState
-          title="No activities yet"
-          description="Start by creating your first activity or join one from the feed!"
+          title="Time to get active!"
+          description="Create your first activity or join one from the feed!"
           icon={Activity}
           primaryAction={{
             label: "Create Activity",
@@ -296,8 +296,8 @@ export default function Agenda() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <EmptyState
-          title="No upcoming activities"
-          description="You have no activities planned. Create a new one or join an activity from the feed!"
+          title="All caught up!"
+          description="Create a new activity or join others from the feed!"
           icon={Calendar}
           primaryAction={{
             label: "Create Activity",
@@ -525,7 +525,7 @@ export default function Agenda() {
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">My Agenda</h1>
+        <h1 className="text-3xl font-bold">My Agenda</h1>
       </div>
       {activities.length > 0 && hasPast && (
         <div className="flex items-center gap-2 mb-8">
