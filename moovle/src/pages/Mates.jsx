@@ -537,8 +537,8 @@ export default function Mates() {
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 px-6 py-3 text-sm font-medium transition-all duration-200 cursor-pointer relative ${
               activeTab === tab.id
-                ? "text-teal-600 border-b-2 border-teal-600"
-                : "text-slate-600 hover:text-slate-800"
+                ? "text-teal-700 border-b-2 border-teal-500"
+                : "text-slate-500 hover:text-slate-700"
             }`}
           >
             {tab.label}
@@ -746,8 +746,8 @@ export default function Mates() {
                 </div>
               ) : (
                 <div className="mb-6 flex flex-col items-center justify-center py-10">
-                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2">
-                    <Clock className="text-slate-400" size={20} />
+                  <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-2">
+                    <Clock className="text-slate-500" size={20} />
                   </div>
                   <p className="text-slate-500">No incoming requests</p>
                 </div>
@@ -792,8 +792,8 @@ export default function Mates() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10">
-                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2">
-                    <UserPlus className="text-slate-400" size={20} />
+                  <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-2">
+                    <UserPlus className="text-slate-500" size={20} />
                   </div>
                   <p className="text-slate-500">No pending requests</p>
                 </div>
@@ -859,8 +859,8 @@ export default function Mates() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                    <Users className="text-slate-400" size={28} />
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <Users className="text-slate-500" size={28} />
                   </div>
                   <h3 className="text-lg font-semibold text-slate-800 mb-2">
                     No mates yet
